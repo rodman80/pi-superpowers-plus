@@ -3,7 +3,7 @@ import { isTestFile, isSourceFile } from "./heuristics";
 export type TddPhase = "idle" | "red" | "green" | "refactor";
 
 export interface TddViolation {
-  type: "source-before-test";
+  type: "source-before-test" | "source-during-red";
   file: string;
 }
 
@@ -30,6 +30,10 @@ export class TddMonitor {
 
       if (this.testFilesWritten.size === 0) {
         return { type: "source-before-test", file: path };
+      }
+
+      if (this.phase === "red") {
+        return { type: "source-during-red", file: path };
       }
 
       if (this.phase === "green") {

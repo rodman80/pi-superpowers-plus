@@ -33,10 +33,18 @@ describe("TddMonitor", () => {
     expect(violation).toBeNull();
   });
 
-  test("no violation when source written after test", () => {
+  test("no violation when source written after test in green phase", () => {
     monitor.onFileWritten("src/utils.test.ts");
+    monitor.onTestResult(true); // → GREEN
     const violation = monitor.onFileWritten("src/utils.ts");
     expect(violation).toBeNull();
+  });
+
+  test("returns source-during-red violation when source written in red phase", () => {
+    monitor.onFileWritten("src/utils.test.ts"); // → RED
+    const violation = monitor.onFileWritten("src/utils.ts");
+    expect(violation).not.toBeNull();
+    expect(violation?.type).toBe("source-during-red");
   });
 
   test("transitions to green when tests pass after red", () => {

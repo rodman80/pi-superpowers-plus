@@ -16,6 +16,12 @@ describe("getTddViolationWarning", () => {
     expect(warning).toContain("I'll test after");
   });
 
+  test("returns source-during-red warning", () => {
+    const warning = getTddViolationWarning("source-during-red", "src/utils.ts");
+    expect(warning).toContain("RED phase");
+    expect(warning).toContain("Run your failing test");
+  });
+
   test("warning is concise (under 15 lines)", () => {
     const warning = getTddViolationWarning("source-before-test", "src/utils.ts");
     const lines = warning.split("\n").filter((l) => l.trim().length > 0);

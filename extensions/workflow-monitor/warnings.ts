@@ -19,6 +19,18 @@ Delete the production code. Write the test. Watch it fail. Then implement.
 `.trim();
   }
 
+  if (type === "source-during-red") {
+    return `
+⚠️ TDD VIOLATION: You wrote production code (${file}) during RED phase.
+
+You wrote a test but haven't run it yet. Run your failing test first.
+
+The TDD cycle: Write test → Run it (RED) → Write code → Run it (GREEN)
+
+You're in RED. Run the test. Watch it fail. THEN write the production code.
+`.trim();
+  }
+
   return `⚠️ TDD WARNING: Unexpected violation type "${type}" for ${file}`;
 }
 
