@@ -81,7 +81,11 @@ export function createWorkflowHandler(): WorkflowHandler {
       if (parseTestCommand(command)) {
         const passed = parseTestResult(output, exitCode);
         if (passed !== null) {
-          verification.recordVerification();
+          if (passed) {
+            verification.recordVerification();
+          } else {
+            verification.reset();
+          }
 
           const excludeFromDebug =
             !passed && tdd.getPhase() === "red" && tdd.isRedVerificationPending();

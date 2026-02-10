@@ -161,10 +161,27 @@ describe("WorkflowHandler", () => {
       expect(result!.type).toBe("commit-without-verification");
     });
 
-    test("returns null on git commit after test run", () => {
+    test("returns null on git commit after passing test run", () => {
       handler.handleBashResult("npx vitest run", "1 passed", 0);
       const result = handler.checkCommitGate("git commit -m 'feat'");
       expect(result).toBeNull();
+    });
+
+    test("returns violation on git commit after failing test run", () => {
+      handler.handleBashResult("npx vitest run", "1 failing", 1);
+      const result = handler.checkCommitGate("git commit -m 'feat'");
+      expect(result).not.toBeNull();
+      expect(result!.type).toBe("commit-without-verification");
+    });
+
+    test("invalidates previous verification after a later failing test run", () => {
+      handler.handleBashResult("npx vitest run", "1 passed", 0);
+      expect(handler.checkCommitGate("git commit -m 'feat'")).toBeNull();
+
+      handler.handleBashResult("npx vitest run", "1 failing", 1);
+      const result = handler.checkCommitGate("git commit -m 'feat'");
+      expect(result).not.toBeNull();
+      expect(result!.type).toBe("commit-without-verification");
     });
 
     test("invalidates verification after source write", () => {

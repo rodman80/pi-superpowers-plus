@@ -19,7 +19,6 @@ import {
   getDebugViolationWarning,
   getVerificationViolationWarning,
   type DebugViolationType,
-  type VerificationViolationType,
 } from "./workflow-monitor/warnings";
 import { loadReference, REFERENCE_TOPICS } from "./workflow-monitor/reference-tool";
 
@@ -97,10 +96,7 @@ export default function (pi: ExtensionAPI) {
       if (pendingVerificationViolation) {
         const violation = pendingVerificationViolation;
         pendingVerificationViolation = null;
-        const warning = getVerificationViolationWarning(
-          violation.type as VerificationViolationType,
-          violation.command
-        );
+        const warning = getVerificationViolationWarning(violation.type, violation.command);
         const existingText = event.content
           .filter((c): c is { type: "text"; text: string } => c.type === "text")
           .map((c) => c.text)
