@@ -4,6 +4,12 @@ import { isInvestigationCommand } from "./investigation";
 import { TddMonitor, type TddPhase, type TddViolation } from "./tdd-monitor";
 import { parseTestCommand, parseTestResult } from "./test-runner";
 import { VerificationMonitor, type VerificationViolation } from "./verification-monitor";
+import {
+  WorkflowTracker,
+  type WorkflowTrackerState,
+  type Phase,
+} from "./workflow-tracker";
+import type { SessionEntry } from "@mariozechner/pi-coding-agent";
 
 export type Violation = TddViolation | DebugViolation;
 
@@ -28,6 +34,14 @@ export interface WorkflowHandler {
     sourceFiles: string[],
     redVerificationPending?: boolean
   ): void;
+  handleInputText(text: string): boolean;
+  handleFileWritten(path: string): boolean;
+  handlePlanTrackerToolCall(input: Record<string, any>): boolean;
+  getWorkflowState(): WorkflowTrackerState | null;
+  restoreWorkflowStateFromBranch(branch: SessionEntry[]): void;
+  markWorkflowPrompted(phase: Phase): boolean;
+  completeCurrentWorkflowPhase(): boolean;
+  advanceWorkflowTo(phase: Phase): boolean;
   resetState(): void;
 }
 
@@ -35,6 +49,7 @@ export function createWorkflowHandler(): WorkflowHandler {
   const tdd = new TddMonitor();
   const debug = new DebugMonitor();
   const verification = new VerificationMonitor();
+  const tracker = new WorkflowTracker();
   let debugFailStreak = 0;
 
   return {
@@ -155,11 +170,50 @@ export function createWorkflowHandler(): WorkflowHandler {
       tdd.setState(phase, testFiles, sourceFiles, redVerificationPending);
     },
 
+    handleInputText(text: string) {
+      return tracker.onInputText(text);
+    },
+
+    handleFileWritten(path: string) {
+      return tracker.onFileWritten(path);
+    },
+
+    handlePlanTrackerToolCall(input: Record<string, any>) {
+      if (input.action === "init") {
+        return tracker.onPlanTrackerInit();
+      }
+      return false;
+    },
+
+    getWorkflowState() {
+      return tracker.getState();
+    },
+
+    restoreWorkflowStateFromBranch(branch: SessionEntry[]) {
+      const state = WorkflowTracker.reconstructFromBranch(branch);
+      if (state) {
+        tracker.setState(state);
+      }
+    },
+
+    markWorkflowPrompted(phase: Phase) {
+      return tracker.markPrompted(phase);
+    },
+
+    completeCurrentWorkflowPhase() {
+      return tracker.completeCurrent();
+    },
+
+    advanceWorkflowTo(phase) {
+      return tracker.advanceTo(phase);
+    },
+
     resetState() {
       debugFailStreak = 0;
       tdd.onCommit();
       debug.onCommit();
       verification.reset();
+      tracker.setState(new WorkflowTracker().getState());
     },
   };
 }
