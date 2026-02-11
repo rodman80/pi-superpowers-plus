@@ -68,4 +68,39 @@ describe("branch safety monitor", () => {
     expect(text).toContain("📌 Current branch: `my-branch`");
     expect(text).toContain("hi");
   });
+
+  test("injects a first-write gate warning on the first write tool_result", async () => {
+    execSyncMock.mockImplementation((cmd: string) => {
+      if (cmd.startsWith("git branch")) return Buffer.from("topic/branch\n");
+      throw new Error("unexpected command");
+    });
+
+    const fake = createFakePi();
+    workflowMonitorExtension(fake.api as any);
+
+    const onToolCall = getSingleHandler(fake.handlers, "tool_call");
+    const onToolResult = getSingleHandler(fake.handlers, "tool_result");
+
+    const ctx = {
+      hasUI: false,
+      sessionManager: { getBranch: () => [] },
+      ui: { setWidget: () => {} },
+    };
+
+    await onToolCall({ toolName: "write", input: { path: "README.md", content: "x" } }, ctx);
+
+    const res = await onToolResult(
+      {
+        toolName: "write",
+        input: { path: "README.md", content: "x" },
+        content: [{ type: "text", text: "ok" }],
+        details: {},
+      },
+      ctx
+    );
+
+    const text = res.content[0].text as string;
+    expect(text).toContain("⚠️ First write of this session.");
+    expect(text).toContain("topic/branch");
+  });
 });
