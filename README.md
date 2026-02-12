@@ -75,6 +75,30 @@ Notes:
 - If you keep both packages enabled, you may get duplicate/competing skill guidance.
 - `pi-superpowers-plus` is more “opinionated” at runtime: it will inject warnings into tool output and may gate shipping commands until verification has passed.
 
+### How the skills were cleaned up (leveraging pi)
+
+A core goal of `pi-superpowers-plus` is to keep **skill instructions short and action-oriented**, and rely on pi’s runtime capabilities for the “heavy lifting”:
+- **Extensions** enforce behavior *while you work* (TDD/Debug/Verification monitors, branch safety notices), instead of relying on long written reminders.
+- The **TUI** can show state (workflow/TDD) and prompt at boundaries, reducing repeated prose in skills.
+- Tools like **`plan_tracker`** store execution state outside the prompt, so skills don’t need to carry as much bookkeeping text.
+
+To make this concrete, here’s the size of each skill’s `SKILL.md` compared to the original [`coctostan/pi-superpowers`](https://github.com/coctostan/pi-superpowers) (approximate KB, at time of writing). Across the shared skills, total `SKILL.md` content went from **67.5KB → 55.8KB** (**-11.6KB**, ~**-17%**).
+
+| Skill | pi-superpowers SKILL.md (KB) | pi-superpowers-plus SKILL.md (KB) | Δ (KB) |
+|---|---:|---:|---:|
+| `brainstorming` | 2.5 | 2.8 | +0.2 |
+| `dispatching-parallel-agents` | 6.2 | 6.2 | -0.0 |
+| `executing-plans` | 2.7 | 3.3 | +0.6 |
+| `finishing-a-development-branch` | 4.3 | 4.4 | +0.1 |
+| `receiving-code-review` | 6.2 | 5.9 | -0.3 |
+| `requesting-code-review` | 2.9 | 3.0 | +0.1 |
+| `subagent-driven-development` | 10.2 | 9.6 | -0.5 |
+| `systematic-debugging` | 9.8 | 5.1 | -4.7 |
+| `test-driven-development` | 9.8 | 3.4 | -6.4 |
+| `using-git-worktrees` | 5.5 | 6.1 | +0.7 |
+| `verification-before-completion` | 4.1 | 2.6 | -1.5 |
+| `writing-plans` | 3.3 | 3.5 | +0.2 |
+
 ## The Workflow
 
 The skills guide the agent through a consistent development cycle:
