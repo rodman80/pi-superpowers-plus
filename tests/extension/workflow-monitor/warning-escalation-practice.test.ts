@@ -5,7 +5,6 @@ type Handler = (event: any, ctx: any) => any;
 
 function createFakePi() {
   const handlers = new Map<string, Handler[]>();
-
   return {
     handlers,
     api: {
@@ -27,35 +26,35 @@ function getSingleHandler(handlers: Map<string, Handler[]>, event: string): Hand
   return list[0]!;
 }
 
-describe("workflow monitor widget", () => {
-  test("shows workflow phase strip when a workflow phase is active", async () => {
+describe("practice escalation", () => {
+  test("second TDD violation blocks the write (interactive)", async () => {
     const fake = createFakePi();
     workflowMonitorExtension(fake.api as any);
 
-    let renderer: any;
+    const onToolCall = getSingleHandler(fake.handlers, "tool_call");
+
+    let promptCount = 0;
     const ctx = {
       hasUI: true,
       sessionManager: { getBranch: () => [] },
       ui: {
-        setWidget: (_id: string, widget: any) => {
-          renderer = widget;
+        setWidget: () => {},
+        select: async () => {
+          promptCount += 1;
+          return "No, stop";
         },
-        select: async () => "Skip brainstorm",
         setEditorText: () => {},
+        notify: () => {},
       },
     };
 
-    const onInput = getSingleHandler(fake.handlers, "input");
-    await onInput({ source: "user", input: "/skill:writing-plans" }, ctx);
+    // 1st TDD violation: allowed (warn later in tool_result)
+    await onToolCall({ toolCallId: "t1", toolName: "write", input: { path: "src/a.ts", content: "x" } }, ctx);
 
-    expect(renderer).toBeTypeOf("function");
+    // 2nd TDD violation: should block
+    const res = await onToolCall({ toolCallId: "t2", toolName: "write", input: { path: "src/b.ts", content: "y" } }, ctx);
 
-    const theme = {
-      fg: (_color: string, text: string) => text,
-      bold: (text: string) => text,
-    };
-
-    const textNode = renderer(null, theme);
-    expect(textNode.text).toContain("[plan]");
+    expect(promptCount).toBe(1);
+    expect(res).toEqual({ blocked: true });
   });
 });

@@ -34,6 +34,19 @@ import { getTransitionPrompt } from "./workflow-monitor/workflow-transitions";
 import { getCurrentGitRef } from "./workflow-monitor/git";
 import { getUnresolvedPhasesBefore, getUnresolvedPhases } from "./workflow-monitor/skip-confirmation";
 
+type SelectOption<T extends string> = { label: string; value: T };
+
+async function selectValue<T extends string>(
+  ctx: ExtensionContext,
+  title: string,
+  options: SelectOption<T>[]
+): Promise<T> {
+  const labels = options.map((o) => o.label);
+  const pickedLabel = await ctx.ui.select(title, labels);
+  const picked = options.find((o) => o.label === pickedLabel);
+  return (picked?.value ?? "cancel") as T;
+}
+
 export default function (pi: ExtensionAPI) {
   const handler = createWorkflowHandler();
 
@@ -42,6 +55,33 @@ export default function (pi: ExtensionAPI) {
   const pendingViolations = new Map<string, Violation>();
   const pendingVerificationViolations = new Map<string, VerificationViolation>();
   const pendingBranchGates = new Map<string, string>();
+  const pendingProcessWarnings = new Map<string, string>();
+
+  type ViolationBucket = "process" | "practice";
+  const strikes: Record<ViolationBucket, number> = { process: 0, practice: 0 };
+
+  async function maybeEscalate(
+    bucket: ViolationBucket,
+    ctx: ExtensionContext
+  ): Promise<"allow" | "block"> {
+    strikes[bucket] += 1;
+    if (strikes[bucket] < 2) return "allow";
+
+    if (!ctx.hasUI) return "allow";
+
+    const choice = await ctx.ui.select(
+      `The agent has repeatedly violated ${bucket} guardrails. Allow it to continue?`,
+      ["Yes, continue", "No, stop"]
+    );
+
+    if (choice === "Yes, continue") {
+      strikes[bucket] = 0;
+      return "allow";
+    }
+
+    return "block";
+  }
+
   let branchNoticeShown = false;
   let branchConfirmed = false;
 
@@ -109,6 +149,9 @@ export default function (pi: ExtensionAPI) {
       pendingViolations.clear();
       pendingVerificationViolations.clear();
       pendingBranchGates.clear();
+      pendingProcessWarnings.clear();
+      strikes.process = 0;
+      strikes.practice = 0;
       branchNoticeShown = false;
       branchConfirmed = false;
       updateWidget(ctx);
@@ -155,15 +198,11 @@ export default function (pi: ExtensionAPI) {
       const missing = unresolved[0];
       const missingSkill = phaseToSkill[missing] ?? missing;
       const options = [
-        { label: `Do ${missing} now`, value: "do_now" },
-        { label: `Skip ${missing}`, value: "skip" },
-        { label: "Cancel", value: "cancel" },
+        { label: `Do ${missing} now`, value: "do_now" as const },
+        { label: `Skip ${missing}`, value: "skip" as const },
+        { label: "Cancel", value: "cancel" as const },
       ];
-      const result = await ctx.ui.select(
-        `Phase "${missing}" is unresolved. What would you like to do?`,
-        options as any
-      );
-      const choice = typeof result === "string" ? result : (result as any)?.value ?? "cancel";
+      const choice = await selectValue(ctx, `Phase "${missing}" is unresolved. What would you like to do?`, options);
 
       if (choice === "skip") {
         handler.skipWorkflowPhases([missing]);
@@ -182,18 +221,11 @@ export default function (pi: ExtensionAPI) {
 
     // --- Multiple unresolved phases ---
     const summaryOptions = [
-      { label: "Review one-by-one", value: "review_individually" },
-      { label: "Skip all and continue", value: "skip_all" },
-      { label: "Cancel", value: "cancel" },
+      { label: "Review one-by-one", value: "review_individually" as const },
+      { label: "Skip all and continue", value: "skip_all" as const },
+      { label: "Cancel", value: "cancel" as const },
     ];
-    const summaryResult = await ctx.ui.select(
-      `${unresolved.length} phases are unresolved: ${unresolved.join(", ")}. What would you like to do?`,
-      summaryOptions as any
-    );
-    const summaryChoice =
-      typeof summaryResult === "string"
-        ? summaryResult
-        : (summaryResult as any)?.value ?? "cancel";
+    const summaryChoice = await selectValue(ctx, `${unresolved.length} phases are unresolved: ${unresolved.join(", ")}. What would you like to do?`, summaryOptions);
 
     if (summaryChoice === "skip_all") {
       handler.skipWorkflowPhases(unresolved);
@@ -209,15 +241,11 @@ export default function (pi: ExtensionAPI) {
     for (const phase of unresolved) {
       const skill = phaseToSkill[phase] ?? phase;
       const options = [
-        { label: `Do ${phase} now`, value: "do_now" },
-        { label: `Skip ${phase}`, value: "skip" },
-        { label: "Cancel", value: "cancel" },
+        { label: `Do ${phase} now`, value: "do_now" as const },
+        { label: `Skip ${phase}`, value: "skip" as const },
+        { label: "Cancel", value: "cancel" as const },
       ];
-      const result = await ctx.ui.select(
-        `Phase "${phase}" is unresolved. What would you like to do?`,
-        options as any
-      );
-      const choice = typeof result === "string" ? result : (result as any)?.value ?? "cancel";
+      const choice = await selectValue(ctx, `Phase "${phase}" is unresolved. What would you like to do?`, options);
 
       if (choice === "skip") {
         handler.skipWorkflowPhases([phase]);
@@ -247,15 +275,11 @@ export default function (pi: ExtensionAPI) {
       const missing = unresolved[0];
       const missingSkill = phaseToSkill[missing] ?? missing;
       const options = [
-        { label: `Do ${missing} now`, value: "do_now" },
-        { label: `Skip ${missing}`, value: "skip" },
-        { label: "Cancel", value: "cancel" },
+        { label: `Do ${missing} now`, value: "do_now" as const },
+        { label: `Skip ${missing}`, value: "skip" as const },
+        { label: "Cancel", value: "cancel" as const },
       ];
-      const result = await ctx.ui.select(
-        `Phase "${missing}" is unresolved. What would you like to do?`,
-        options as any
-      );
-      const choice = typeof result === "string" ? result : (result as any)?.value ?? "cancel";
+      const choice = await selectValue(ctx, `Phase "${missing}" is unresolved. What would you like to do?`, options);
 
       if (choice === "skip") {
         handler.skipWorkflowPhases([missing]);
@@ -272,18 +296,11 @@ export default function (pi: ExtensionAPI) {
 
     // Multiple unresolved
     const summaryOptions = [
-      { label: "Review one-by-one", value: "review_individually" },
-      { label: "Skip all and continue", value: "skip_all" },
-      { label: "Cancel", value: "cancel" },
+      { label: "Review one-by-one", value: "review_individually" as const },
+      { label: "Skip all and continue", value: "skip_all" as const },
+      { label: "Cancel", value: "cancel" as const },
     ];
-    const summaryResult = await ctx.ui.select(
-      `${unresolved.length} phases are unresolved: ${unresolved.join(", ")}. What would you like to do?`,
-      summaryOptions as any
-    );
-    const summaryChoice =
-      typeof summaryResult === "string"
-        ? summaryResult
-        : (summaryResult as any)?.value ?? "cancel";
+    const summaryChoice = await selectValue(ctx, `${unresolved.length} phases are unresolved: ${unresolved.join(", ")}. What would you like to do?`, summaryOptions);
 
     if (summaryChoice === "skip_all") {
       handler.skipWorkflowPhases(unresolved);
@@ -298,15 +315,11 @@ export default function (pi: ExtensionAPI) {
     for (const phase of unresolved) {
       const skill = phaseToSkill[phase] ?? phase;
       const options = [
-        { label: `Do ${phase} now`, value: "do_now" },
-        { label: `Skip ${phase}`, value: "skip" },
-        { label: "Cancel", value: "cancel" },
+        { label: `Do ${phase} now`, value: "do_now" as const },
+        { label: `Skip ${phase}`, value: "skip" as const },
+        { label: "Cancel", value: "cancel" as const },
       ];
-      const result = await ctx.ui.select(
-        `Phase "${phase}" is unresolved. What would you like to do?`,
-        options as any
-      );
-      const choice = typeof result === "string" ? result : (result as any)?.value ?? "cancel";
+      const choice = await selectValue(ctx, `Phase "${phase}" is unresolved. What would you like to do?`, options);
 
       if (choice === "skip") {
         handler.skipWorkflowPhases([phase]);
@@ -373,15 +386,32 @@ export default function (pi: ExtensionAPI) {
         }
       }
 
-      const verificationViolation = handler.checkCommitGate(command);
-      if (verificationViolation) {
-        pendingVerificationViolations.set(toolCallId, verificationViolation);
+      const state = handler.getWorkflowState();
+      const phaseIdx = state?.currentPhase ? WORKFLOW_PHASES.indexOf(state.currentPhase) : -1;
+      const executeIdx = WORKFLOW_PHASES.indexOf("execute");
+
+      if (phaseIdx >= executeIdx) {
+        const verificationViolation = handler.checkCommitGate(command);
+        if (verificationViolation) {
+          pendingVerificationViolations.set(toolCallId, verificationViolation);
+        }
       }
     }
 
     const input = event.input as Record<string, any>;
     const result = handler.handleToolCall(event.toolName, input);
     if (result.violation) {
+      const state = handler.getWorkflowState();
+      const phase = state?.currentPhase;
+      const isThinkingPhase = phase === "brainstorm" || phase === "plan";
+
+      if (!isThinkingPhase) {
+        const escalation = await maybeEscalate("practice", ctx);
+        if (escalation === "block") {
+          return { blocked: true };
+        }
+      }
+
       pendingViolations.set(toolCallId, result.violation);
     }
 
@@ -390,7 +420,26 @@ export default function (pi: ExtensionAPI) {
     if (event.toolName === "write" || event.toolName === "edit") {
       const path = input.path as string | undefined;
       if (path) {
-        changed = handler.handleFileWritten(path) || changed;
+        const state = handler.getWorkflowState();
+        const phase = state?.currentPhase;
+        const isThinkingPhase = phase === "brainstorm" || phase === "plan";
+        const normalizedPath = path.startsWith("./") ? path.slice(2) : path;
+        const isPlansWrite = normalizedPath.startsWith("docs/plans/");
+
+        if (isThinkingPhase && !isPlansWrite) {
+          const escalation = await maybeEscalate("process", ctx);
+          if (escalation === "block") {
+            return { blocked: true };
+          }
+
+          pendingProcessWarnings.set(
+            toolCallId,
+            `⚠️ PROCESS VIOLATION: Wrote ${path} during ${phase} phase.\n` +
+              "During brainstorming/planning you may only write to docs/plans/. Stop and return to docs/plans/ or advance workflow phases intentionally."
+          );
+        }
+
+        changed = handler.handleFileWritten(normalizedPath) || changed;
       }
 
       if (!branchConfirmed) {
@@ -450,6 +499,12 @@ export default function (pi: ExtensionAPI) {
         injected.push(formatViolationWarning(violation));
       }
       pendingViolations.delete(toolCallId);
+
+      const processWarning = pendingProcessWarnings.get(toolCallId);
+      if (processWarning) {
+        injected.push(processWarning);
+      }
+      pendingProcessWarnings.delete(toolCallId);
     }
 
     // Handle bash results (test runs, commits, investigation)
@@ -514,13 +569,10 @@ export default function (pi: ExtensionAPI) {
     const boundaryPhase = boundaryToPhase[boundary];
     const prompt = getTransitionPrompt(boundary, latestState.artifacts[boundaryPhase]);
 
-    const options = prompt.options.map((o) => ({ label: o.label, value: o.choice }));
-    const result = await ctx.ui.select(prompt.title, options as any);
+    const options = prompt.options.map((o) => o.label);
+    const pickedLabel = await ctx.ui.select(prompt.title, options);
 
-    const selected =
-      typeof result === "string"
-        ? prompt.options.find((o) => o.choice === result || o.label === result)?.choice
-        : result?.value ?? result?.choice ?? null;
+    const selected = prompt.options.find((o) => o.label === pickedLabel)?.choice ?? null;
 
     const marked = handler.markWorkflowPrompted(boundaryPhase);
     if (marked) {
