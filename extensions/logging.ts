@@ -51,6 +51,8 @@ export function createLogger(logPath: string, options?: LoggerOptions): Logger {
   const rotationCheckInterval = options?.rotationCheckInterval ?? DEFAULT_ROTATION_CHECK_INTERVAL;
   /** Timestamp (ms) of the last rotation size check. Re-checks after rotationCheckInterval. */
   let lastRotationCheck = -Infinity;
+  /** Set after the first error is reported to stderr, to avoid spamming. */
+  let stderrFallbackFired = false;
 
   function ensureDir(): void {
     const dir = path.dirname(logPath);
@@ -64,6 +66,19 @@ export function createLogger(logPath: string, options?: LoggerOptions): Logger {
    * Re-checks at most once per rotationCheckInterval (default 1 hour)
    * so long-running processes can still rotate without checking on every write.
    */
+  /**
+   * Emit a one-time warning to stderr so the user knows logging is broken.
+   * Only fires once per logger instance to avoid spamming.
+   */
+  function stderrFallback(context: string, err: unknown): void {
+    if (stderrFallbackFired) return;
+    stderrFallbackFired = true;
+    const detail = err instanceof Error ? err.message : String(err);
+    process.stderr.write(
+      `[pi-superpowers-plus] Logger ${context} failed: ${detail}. Further log errors will be silenced.\n`,
+    );
+  }
+
   function rotateIfNeeded(): void {
     const now = Date.now();
     if (now - lastRotationCheck < rotationCheckInterval) return;
@@ -73,8 +88,11 @@ export function createLogger(logPath: string, options?: LoggerOptions): Logger {
       if (stat.size > maxSizeBytes) {
         fs.renameSync(logPath, `${logPath}.1`);
       }
-    } catch {
-      // File doesn't exist yet — nothing to rotate
+    } catch (err) {
+      // File doesn't exist yet — nothing to rotate. But surface unexpected errors once.
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+        stderrFallback("rotation", err);
+      }
     }
   }
 
@@ -87,8 +105,9 @@ export function createLogger(logPath: string, options?: LoggerOptions): Logger {
       rotateIfNeeded();
       const line = `${timestamp()} [${level}] ${truncateMessage(message)}\n`;
       fs.appendFileSync(logPath, line, "utf-8");
-    } catch {
-      // Logger must never crash the application
+    } catch (err) {
+      // Logger must never crash the application, but surface the first failure.
+      stderrFallback("write", err);
     }
   }
 
