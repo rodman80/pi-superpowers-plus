@@ -151,6 +151,10 @@ Ideas with no timeline. May become milestones, may not.
 - `/superpowers reset` — reset all workflow state (stage, monitors, tasks)
 - `/superpowers query "<question>"` — explain current state and why we're here (lower priority; static explanation from audit trail, no LLM call)
 
+### Command-driven phase advancement
+
+**[user]** Replace heuristic skill detection with explicit commands as the primary phase entry point. Commands like `/brainstorm`, `/plan`, `/execute`, `/verify`, `/review`, `/finish` would atomically: advance the tracker, invoke the corresponding skill, and pre-fill the editor. Skill detection stays as a fallback so tracking isn't lost if someone bypasses the command. Depends on `/superpowers stage` design above.
+
 ### Other ideas
 
 - **[user]** Decision log / session recap — human-readable summary of workflow decisions, usable as a "here's where you left off" on session rejoin
