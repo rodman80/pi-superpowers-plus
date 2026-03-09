@@ -31,7 +31,7 @@ import { getSubagentTimeoutMs } from "./timeout.js";
 
 const MAX_PARALLEL_TASKS = 8;
 const COLLAPSED_ITEM_COUNT = 10;
-export const INACTIVITY_TIMEOUT_MS = 120_000;
+export const INACTIVITY_TIMEOUT_MS = 480_000;
 
 function formatTokens(count: number): string {
   if (count < 1000) return count.toString();

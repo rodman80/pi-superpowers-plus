@@ -152,7 +152,7 @@ describe("subagent/index error handling", () => {
   });
 
   test("exports inactivity timeout constant", () => {
-    expect(INACTIVITY_TIMEOUT_MS).toBe(120_000);
+    expect(INACTIVITY_TIMEOUT_MS).toBe(480_000);
   });
 
   test("respects concurrency cap for parallel tasks", async () => {
@@ -205,7 +205,7 @@ describe("subagent/index error handling", () => {
 
   test("kills subagent after absolute timeout", async () => {
     vi.useFakeTimers();
-    // Set absolute timeout shorter than inactivity timeout (120s)
+    // Set absolute timeout shorter than inactivity timeout (480s)
     const originalTimeout = process.env.PI_SUBAGENT_TIMEOUT_MS;
     process.env.PI_SUBAGENT_TIMEOUT_MS = "30000"; // 30s
 
@@ -218,7 +218,7 @@ describe("subagent/index error handling", () => {
       hasUI: false,
     });
 
-    // Advance past the 30s absolute timeout but before 120s inactivity
+    // Advance past the 30s absolute timeout but before 480s inactivity
     await vi.advanceTimersByTimeAsync(35_000);
 
     const result = await resultPromise;

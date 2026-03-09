@@ -228,13 +228,44 @@ If an implementer subagent fails, errors out, or produces incomplete work:
 
 1. **Attempt 1:** Dispatch a NEW fix subagent with specific instructions about what went wrong and what needs to change. Include the error output and the original task text.
 2. **Attempt 2:** If the fix subagent also fails, dispatch one more with a different approach or simplified scope.
-3. **After 2 failed attempts: STOP.** Report the failure to the user and ask how to proceed. The task likely needs redesign.
+3. **After 2 failed attempts: Split the task and continue.**
+   - Analyze the failing task and divide it into 2-3 smaller, more manageable parts
+   - Consider: natural granularity (functions, modules, layers), complexity isolation, logical dependencies, and size reduction
+   - If the task is already too simple to split, skip to step 5
+4. **Update the plan:**
+   - Reconstruct the task list: completed tasks + new subtasks + remaining tasks
+   - Call `plan_tracker({ action: "init", tasks: [reconstructed-list] })`
+   - Mark completed tasks: `plan_tracker({ action: "update", index: N, status: "complete" })` for each
+   - Continue execution with the first new subtask
+5. **If a subtask also fails 2x: STOP.** Report to the user. Maximum 1 level of task division.3. **After 2 failed attempts: Split the task and continue.**
+   - Analyze the failing task and divide it into 2-3 smaller, more manageable parts
+   - Consider: natural granularity (functions, modules, layers), complexity isolation, logical dependencies, and size reduction
+   - If the task is already too simple to split, skip to step 5
+4. **Update the plan:**
+   - Reconstruct the task list: completed tasks + new subtasks + remaining tasks
+   - Call `plan_tracker({ action: "init", tasks: [reconstructed-list] })`
+   - Mark completed tasks: `plan_tracker({ action: "update", index: N, status: "complete" })` for each
+   - Continue execution with the first new subtask
+5. **If a subtask also fails 2x: STOP.** Report to the user. Maximum 1 level of task division.
+
+**Task Splitting Guidelines:**
+
+When dividing a failing task, consider:
+- **Natural granularity:** Split along functional boundaries (e.g., backend vs frontend, setup vs logic vs tests)
+- **Complexity:** Isolate the most complex or error-prone parts into separate tasks
+- **Dependencies:** Ensure subtasks can execute in logical sequence
+- **Size:** Each subtask should be small enough to complete without hitting the same failure mode
+
+**Example:**
+
+Original task: "Implement JWT authentication"
+
+After 2 failures, split into:
+1. "Create JWT validation middleware"
+2. "Implement login endpoint with token generation"
+3. "Add refresh token support"
 
 **NEVER:**
-- Write code yourself to "help" or "finish up" — you are the orchestrator, not an implementer
-- Try to fix the subagent's work inline — this pollutes your context and defeats the fresh-subagent model
-- Silently skip the failed task and move on
-- Reduce quality gates (skip reviews) because a task is "almost done"
 
 ## After All Tasks Complete
 
