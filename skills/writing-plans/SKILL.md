@@ -24,6 +24,19 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 - Write to docs/plans/: yes
 - Edit or create any other files: no
 
+## Scope Check
+
+If the spec covers multiple independent subsystems, it should have been decomposed during brainstorming. If it was not, stop and suggest separate plans rather than forcing one oversized implementation plan.
+
+## File Structure
+
+Before defining tasks, map out which files will be created or modified and what each one is responsible for.
+
+- Prefer small, focused files with one clear responsibility
+- Split by responsibility, not by technical layer alone
+- In existing codebases, follow established patterns unless a targeted split is necessary to keep the task understandable
+- If a plan would create or significantly grow a file that is already hard to reason about, address that directly in the plan
+
 ## Bite-Sized Task Granularity
 
 **Each step is one action (2-5 minutes):**
@@ -40,7 +53,7 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **REQUIRED SUB-SKILL:** Use the executing-plans skill to implement this plan task-by-task.
+> **For agentic workers:** REQUIRED: Use `/skill:subagent-driven-development` (preferred in-session) or `/skill:executing-plans` (parallel session) to implement this plan. Steps use checkbox syntax for tracking.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -63,7 +76,7 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 - Modify: `exact/path/to/existing.py:123-145`
 - Test: `tests/exact/path/to/test.py`
 
-**Step 1: Write the failing test**
+- [ ] **Step 1: Write the failing test**
 
 ```python
 def test_specific_behavior():
@@ -71,24 +84,24 @@ def test_specific_behavior():
     assert result == expected
 ```
 
-**Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/path/test.py::test_name -v`
 Expected: FAIL with "function not defined"
 
-**Step 3: Write minimal implementation**
+- [ ] **Step 3: Write minimal implementation**
 
 ```python
 def function(input):
     return expected
 ```
 
-**Step 4: Run test to verify it passes**
+- [ ] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/path/test.py::test_name -v`
 Expected: PASS
 
-**Step 5: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add tests/path/test.py src/path/file.py
@@ -104,6 +117,20 @@ git commit -m "feat: add specific feature"
 - DRY, YAGNI, TDD, frequent commits
 - Order tasks so each task's dependencies are completed by earlier tasks
 - If plan exceeds ~8 tasks, consider splitting into phases with a checkpoint between them
+
+## Plan Review Loop
+
+After completing each chunk of the plan:
+
+1. Fill the template at `plan-document-reviewer-prompt.md` for the current chunk
+2. Dispatch it with `subagent({ agent: "doc-reviewer", task: "... filled template ..." })`
+3. If issues are found:
+   - fix the chunk
+   - re-dispatch the reviewer
+   - repeat until approved
+4. If the loop exceeds 5 iterations, stop and ask the user for guidance
+
+**Chunk boundaries:** Use `## Chunk N: <name>` headings when helpful. Keep each chunk logically self-contained and under 1000 lines.
 
 ## Execution Handoff
 

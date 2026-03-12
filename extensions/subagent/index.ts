@@ -203,13 +203,30 @@ function isTestCommand(cmd: string): boolean {
   );
 }
 
-function collectSummary(messages: Message[]): { filesChanged: string[]; testsRan: boolean } {
+type ImplementerStatus = "DONE" | "DONE_WITH_CONCERNS" | "BLOCKED" | "NEEDS_CONTEXT";
+
+function parseImplementerStatus(text: string): ImplementerStatus | undefined {
+  const match = text.match(/(?:\*\*)?Status:(?:\*\*)?\s*(DONE_WITH_CONCERNS|DONE|BLOCKED|NEEDS_CONTEXT)\b/i);
+  if (!match) return undefined;
+  return match[1].toUpperCase() as ImplementerStatus;
+}
+
+function collectSummary(messages: Message[]): {
+  filesChanged: string[];
+  testsRan: boolean;
+  implementerStatus?: ImplementerStatus;
+} {
   const files = new Set<string>();
   let testsRan = false;
+  let implementerStatus: ImplementerStatus | undefined;
 
   for (const msg of messages) {
     if (msg.role !== "assistant") continue;
     for (const part of msg.content) {
+      if (part.type === "text" && !implementerStatus) {
+        implementerStatus = parseImplementerStatus(part.text);
+        continue;
+      }
       if (part.type !== "toolCall") continue;
       // biome-ignore lint/suspicious/noExplicitAny: pi SDK message content type
       if ((part.name === "write" || part.name === "edit") && typeof (part.arguments as any)?.path === "string") {
@@ -224,10 +241,10 @@ function collectSummary(messages: Message[]): { filesChanged: string[]; testsRan
     }
   }
 
-  return { filesChanged: Array.from(files), testsRan };
+  return { filesChanged: Array.from(files), testsRan, implementerStatus };
 }
 
-export const __internal = { collectSummary };
+export const __internal = { collectSummary, parseImplementerStatus };
 
 async function mapWithConcurrencyLimit<TIn, TOut>(
   items: TIn[],
@@ -804,6 +821,7 @@ export default function (pi: ExtensionAPI) {
           result: getFinalOutput(result.messages),
           filesChanged: summary.filesChanged,
           testsRan: summary.testsRan,
+          implementerStatus: summary.implementerStatus,
           tddViolations: result.tddViolations ?? 0,
         };
         const isError = result.exitCode !== 0 || result.stopReason === "error" || result.stopReason === "aborted";

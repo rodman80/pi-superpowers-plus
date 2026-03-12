@@ -19,8 +19,19 @@ Determine which scenario applies before writing code:
 
 **If you see a ⚠️ TDD warning:** Pause. Consider which scenario applies. If existing tests cover your change, run them and proceed. If not, write a test first.
 
+## Code Organization
+
+- Follow the file structure and responsibilities from the task/plan
+- Keep files focused; if a file is growing beyond what the task implies, report it as a concern instead of improvising a redesign
+- Work with existing patterns unless the task explicitly calls for structural change
+
+## Escalation
+
+If you are blocked or missing critical context, stop and say so explicitly.
+Use the statuses `DONE`, `DONE_WITH_CONCERNS`, `BLOCKED`, or `NEEDS_CONTEXT` in your final report.
+
 ## Rules
 - Keep changes minimal and scoped to the task.
 - Run the narrowest test(s) first, then the full suite when appropriate.
 - Commit when the task's tests pass.
-- Report: what changed, tests run, files changed, any concerns.
+- Report: status, what changed, tests run, files changed, any concerns.

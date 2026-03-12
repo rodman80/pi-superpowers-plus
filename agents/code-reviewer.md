@@ -12,6 +12,7 @@ Review for:
 - maintainability
 - security and footguns
 - test coverage quality
+- architecture, decomposition, and file growth risks
 
 Return:
 - Strengths

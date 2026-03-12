@@ -70,6 +70,10 @@ If you're currently using [`pi-superpowers`](https://github.com/coctostan/pi-sup
 - **Workflow Monitor extension** that observes tool calls/results and injects warnings directly into output
 - **TDD discipline warnings** when writing source code without a failing test (advisory, not blocking)
 - **Three-scenario TDD model** — new feature (full TDD), modifying tested code (run existing tests), trivial change (judgment) — applied consistently across skills, agent profiles, and plan templates
+- **Spec review loop in brainstorming** — written specs are reviewed before planning, then explicitly approved by the user
+- **Plan review loop in writing-plans** — plan chunks can be reviewed for completeness, scope, and file structure before execution
+- **Architecture-aware planning guidance** — scope checks, file-structure planning, and isolation guidance imported from upstream 5.x
+- **Stronger subagent protocol** — implementers now report `DONE`, `DONE_WITH_CONCERNS`, `BLOCKED`, or `NEEDS_CONTEXT`
 - **Debug enforcement** escalation after repeated failing tests
 - **Verification gating** for `git commit` / `git push` / `gh pr create` until passing tests are run (suppressed during active plan execution)
 - **Workflow tracking + boundary prompts** (and `/workflow-next` handoff)
@@ -127,8 +131,8 @@ Brainstorm → Plan → Execute → Verify → Review → Finish
 | Phase | Skill | What Happens |
 |-------|-------|--------------|
 | **Brainstorm** | `/skill:brainstorming` | Refines your idea into a design document via Socratic dialogue |
-| **Plan** | `/skill:writing-plans` | Breaks the design into bite-sized TDD tasks with exact file paths and code |
-| **Execute** | `/skill:executing-plans` or `/skill:subagent-driven-development` | Works through tasks in batches with review checkpoints |
+| **Plan** | `/skill:writing-plans` | Breaks the design into bite-sized TDD tasks with scope checks, file structure, and review checkpoints |
+| **Execute** | `/skill:executing-plans` or `/skill:subagent-driven-development` | Works through tasks with implementer status handling plus spec-first, quality-second review |
 | **Verify** | `/skill:verification-before-completion` | Runs tests and proves everything works - evidence before claims |
 | **Review** | `/skill:requesting-code-review` | Dispatches a reviewer subagent to catch issues before merge |
 | **Finish** | `/skill:finishing-a-development-branch` | Presents merge/PR/keep/discard options and cleans up |
@@ -270,6 +274,7 @@ A bundled `subagent` tool lets the orchestrating agent spawn isolated subprocess
 |-------|---------|-------|------------|
 | `implementer` | Strict TDD implementation | read, write, edit, bash, lsp | — |
 | `worker` | General-purpose task execution | read, write, edit, bash, lsp | — |
+| `doc-reviewer` | Spec/plan document review | read, bash, find, grep, ls (read-only) | — |
 | `code-reviewer` | Production readiness review | read, bash (read-only) | — |
 | `spec-reviewer` | Plan/spec compliance check | read, bash (read-only) | — |
 
@@ -298,6 +303,7 @@ Single-agent results include:
 - `filesChanged` — list of files written/edited
 - `testsRan` — whether any test commands were executed
 - `status` — `"completed"` or `"failed"`
+- `implementerStatus` — implementer-reported task outcome such as `DONE`, `DONE_WITH_CONCERNS`, `BLOCKED`, or `NEEDS_CONTEXT`
 
 ### Custom Agents
 

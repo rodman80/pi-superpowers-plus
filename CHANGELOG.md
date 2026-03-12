@@ -9,6 +9,18 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Spec document review prompts** — `brainstorming` now ships a bundled `spec-document-reviewer-prompt.md` and instructs the agent to run a review loop before handing off to planning.
+- **Plan document review prompts** — `writing-plans` now ships a bundled `plan-document-reviewer-prompt.md` for chunk-level plan review before execution.
+- **Implementer status in subagent structured results** — single-agent `subagent` responses now surface `implementerStatus` when the implementer reports `DONE`, `DONE_WITH_CONCERNS`, `BLOCKED`, or `NEEDS_CONTEXT`.
+
+### Changed
+
+- **`brainstorming` skill synced with upstream 5.x structure** — adds hard gate/checklist discipline, scope decomposition, design-for-isolation guidance, spec review loop, and explicit user approval of the written spec while preserving Pi-specific `docs/plans/` and `plan_tracker` behavior.
+- **`writing-plans` skill synced with upstream 5.x planning guidance** — adds scope checks, file-structure planning, checkbox task syntax, and plan review loops while keeping Pi-specific execution handoff.
+- **Subagent orchestration strengthened** — `subagent-driven-development`, implementer prompts, and bundled agent profiles now use the new escalation/status protocol and architecture-aware review criteria.
+
 ### Removed
 
 - **`tdd-guard` extension** — TDD enforcement is now handled via runtime warnings in `workflow-monitor` and three-scenario TDD instructions embedded in agent profiles and skill text. Agent profiles no longer need `extensions: ../extensions/tdd-guard.ts` in their frontmatter.

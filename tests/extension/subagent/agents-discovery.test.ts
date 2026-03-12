@@ -1,3 +1,5 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { describe, expect, test } from "vitest";
 import { discoverAgents } from "../../../extensions/subagent/agents";
 
@@ -7,5 +9,14 @@ describe("subagent agent discovery", () => {
     const names = res.agents.map((a) => a.name);
     expect(names).toContain("implementer");
     expect(names).toContain("code-reviewer");
+  });
+
+  test("ships bundled review prompts for spec and plan document loops", () => {
+    expect(fs.existsSync(path.join(process.cwd(), "skills", "brainstorming", "spec-document-reviewer-prompt.md"))).toBe(
+      true,
+    );
+    expect(fs.existsSync(path.join(process.cwd(), "skills", "writing-plans", "plan-document-reviewer-prompt.md"))).toBe(
+      true,
+    );
   });
 });

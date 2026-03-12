@@ -44,6 +44,28 @@ Dispatch a subagent with this prompt:
     **While you work:** If you encounter something unexpected or unclear, **ask questions**.
     It's always OK to pause and clarify. Don't guess or make assumptions.
 
+    ## Code Organization
+
+    Keep code structure intentional while you work:
+    - Follow the file structure defined in the plan
+    - Keep each file focused on one clear responsibility
+    - If a file you are creating is growing beyond the plan's intent, stop and report it as `DONE_WITH_CONCERNS`
+    - If an existing file is already large or tangled, work carefully and call that out in your report
+    - Follow established codebase patterns unless the plan explicitly says otherwise
+
+    ## When You're in Over Your Head
+
+    It is always OK to stop and escalate instead of producing shaky work.
+
+    **STOP and escalate when:**
+    - The task requires architectural choices the plan did not settle
+    - You need context that wasn't provided and cannot infer safely
+    - You are no longer confident your approach is correct
+    - The task requires restructuring existing code beyond the plan
+    - You keep reading more files without converging
+
+    **How to escalate:** Report back with status `BLOCKED` or `NEEDS_CONTEXT`. Say what you tried and what you need next.
+
     ## Before Reporting Back: Self-Review
 
     Review your work with fresh eyes. Ask yourself:
@@ -75,9 +97,14 @@ Dispatch a subagent with this prompt:
     ## Report Format
 
     When done, report:
+    - **Status:** `DONE` | `DONE_WITH_CONCERNS` | `BLOCKED` | `NEEDS_CONTEXT`
     - What you implemented
     - What you tested and test results
     - Files changed
     - Self-review findings (if any)
     - Any issues or concerns
+
+    Use `DONE_WITH_CONCERNS` if the task is complete but you have meaningful correctness, scope, or maintainability concerns.
+    Use `BLOCKED` if you cannot complete the task.
+    Use `NEEDS_CONTEXT` if you need missing information before proceeding.
 ```

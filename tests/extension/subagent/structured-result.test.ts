@@ -16,4 +16,15 @@ describe("subagent structured summary", () => {
     expect(summary.filesChanged).toEqual(["src/a.ts"]);
     expect(summary.testsRan).toBe(true);
   });
+
+  test("extracts implementer status from assistant text output", () => {
+    const summary = __internal.collectSummary([
+      {
+        role: "assistant",
+        content: [{ type: "text", text: "**Status:** DONE_WITH_CONCERNS\n- Implemented feature" }],
+      },
+    ] as any);
+
+    expect(summary.implementerStatus).toBe("DONE_WITH_CONCERNS");
+  });
 });

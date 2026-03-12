@@ -45,6 +45,16 @@ digraph when_to_use {
 
 **Dependent tasks:** Most real plans have some dependencies. For dependent tasks, include the previous task's implementation summary and relevant file paths in the next subagent's context. Track what each completed task produced so you can pass it forward.
 
+## Model Selection
+
+Choose model capability deliberately:
+
+- **Mechanical implementation tasks** (small, localized, complete spec) → cheaper model is fine
+- **Integration or debugging tasks** (multiple files, coordination, pattern matching) → standard model
+- **Architecture, planning, or review-heavy tasks** → most capable model available
+
+If an implementer gets stuck for capability reasons, re-dispatch with a more capable model instead of blindly retrying.
+
 ## The Process
 
 ```dot
@@ -113,6 +123,17 @@ subagent({ agent: "spec-reviewer", task: "... full review prompt text ..." })
 ```ts
 subagent({ agent: "code-reviewer", task: "... full review prompt text ..." })
 ```
+
+## Handling Implementer Status
+
+Implementer subagents report one of four statuses. Handle them explicitly:
+
+- **`DONE`** — proceed to spec compliance review
+- **`DONE_WITH_CONCERNS`** — read the concerns before proceeding; if they affect correctness or scope, address them first
+- **`NEEDS_CONTEXT`** — provide the missing context and re-dispatch
+- **`BLOCKED`** — change something before retrying: provide more context, use a stronger model, split the task, or escalate to the user
+
+Never ignore an escalation and never force the same retry without changing the conditions.
 
 ## Example Workflow
 
@@ -205,6 +226,7 @@ Done!
 - Let implementer self-review replace actual review (both are needed)
 - **Start code quality review before spec compliance is ✅** (wrong order)
 - Move to next task while either review has open issues
+- Ignore `DONE_WITH_CONCERNS`, `BLOCKED`, or `NEEDS_CONTEXT`
 
 **If subagent asks questions:**
 - Answer clearly and completely
@@ -224,7 +246,7 @@ Done!
 
 **You are the orchestrator. You do NOT write code. You dispatch subagents that write code.**
 
-If an implementer subagent fails, errors out, or produces incomplete work:
+If an implementer subagent fails, errors out, or returns `BLOCKED` / `NEEDS_CONTEXT` / incomplete work:
 
 1. **Attempt 1:** Dispatch a NEW fix subagent with specific instructions about what went wrong and what needs to change. Include the error output and the original task text.
 2. **Attempt 2:** If the fix subagent also fails, dispatch one more with a different approach or simplified scope.
@@ -237,35 +259,7 @@ If an implementer subagent fails, errors out, or produces incomplete work:
    - Call `plan_tracker({ action: "init", tasks: [reconstructed-list] })`
    - Mark completed tasks: `plan_tracker({ action: "update", index: N, status: "complete" })` for each
    - Continue execution with the first new subtask
-5. **If a subtask also fails 2x: STOP.** Report to the user. Maximum 1 level of task division.3. **After 2 failed attempts: Split the task and continue.**
-   - Analyze the failing task and divide it into 2-3 smaller, more manageable parts
-   - Consider: natural granularity (functions, modules, layers), complexity isolation, logical dependencies, and size reduction
-   - If the task is already too simple to split, skip to step 5
-4. **Update the plan:**
-   - Reconstruct the task list: completed tasks + new subtasks + remaining tasks
-   - Call `plan_tracker({ action: "init", tasks: [reconstructed-list] })`
-   - Mark completed tasks: `plan_tracker({ action: "update", index: N, status: "complete" })` for each
-   - Continue execution with the first new subtask
 5. **If a subtask also fails 2x: STOP.** Report to the user. Maximum 1 level of task division.
-
-**Task Splitting Guidelines:**
-
-When dividing a failing task, consider:
-- **Natural granularity:** Split along functional boundaries (e.g., backend vs frontend, setup vs logic vs tests)
-- **Complexity:** Isolate the most complex or error-prone parts into separate tasks
-- **Dependencies:** Ensure subtasks can execute in logical sequence
-- **Size:** Each subtask should be small enough to complete without hitting the same failure mode
-
-**Example:**
-
-Original task: "Implement JWT authentication"
-
-After 2 failures, split into:
-1. "Create JWT validation middleware"
-2. "Implement login endpoint with token generation"
-3. "Add refresh token support"
-
-**NEVER:**
 
 ## After All Tasks Complete
 
