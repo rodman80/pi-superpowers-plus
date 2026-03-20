@@ -98,6 +98,26 @@ git diff {BASE_SHA}..{HEAD_SHA}
 
 **Reasoning:** [Technical assessment in 1-2 sentences]
 
+## Review Summary
+
+**REQUIRED:** End every review with this structured summary for orchestrator consumption.
+
+```markdown
+## Review Summary
+
+**Files changed:** [`path/to/file1.ts`, `path/to/file2.ts`]
+
+**What was implemented:** [2-3 sentences describing the main implementation]
+
+**Dependencies affected:** [list of imports/exports that changed, or "none"]
+
+**Flags for orchestrator:** [list of flags requiring orchestrator attention, or "none"]
+- Examples: "Modified shared utility", "Changed internal API signature", "Touched hot path", "New dependency added"
+- A module is considered "shared" if imported by 2+ other files
+
+**Verdict:** ✅ Approved / ❌ Needs fixes
+```
+
 ## Critical Rules
 
 **DO:**
@@ -150,4 +170,16 @@ git diff {BASE_SHA}..{HEAD_SHA}
 **Ready to merge: With fixes**
 
 **Reasoning:** Core implementation is solid with good architecture and tests. Important issues (help text, date validation) are easily fixed and don't affect core functionality.
+
+## Review Summary
+
+**Files changed:** [`index-conversations`, `search.ts`, `indexer.ts`]
+
+**What was implemented:** Added conversation indexing with date search and progress reporting.
+
+**Dependencies affected:** none
+
+**Flags for orchestrator:** "Modified shared CLI wrapper"
+
+**Verdict:** ✅ Approved
 ```
