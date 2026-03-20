@@ -102,6 +102,60 @@ digraph process {
 }
 ```
 
+### Orchestrator Review
+
+After code quality reviewer approves, the orchestrator performs a final review before marking the task complete.
+
+**What the orchestrator reviews:**
+1. Read the Review Summary from code-quality-reviewer
+2. If **Flags for orchestrator** is not "none", open those specific files and review them
+3. Cross-reference with:
+   - Previous tasks' implementation summaries (what patterns were established)
+   - Upcoming tasks in the plan (does this implementation help or hinder them)
+   - Global project context (naming conventions, architectural decisions)
+
+**What the orchestrator checks:**
+- Consistency with previous tasks (naming, patterns, structure)
+- Side effects on completed work
+- Readiness for upcoming tasks
+- Business context alignment
+
+**How the orchestrator acts:**
+
+| Problem type | Action |
+|--------------|--------|
+| Typos, unused imports, local variable names | Fix directly |
+| Rename private functions/methods, adjust error messages | Fix directly |
+| Small logic adjustments in isolated functions | Fix directly |
+| Add small helper functions | Fix directly |
+| Adjust internal (non-public) function signatures | Fix directly |
+| Refactor code within a single function | Fix directly |
+| Changes to public APIs or shared modules | Re-dispatch implementer |
+| Logic changes affecting multiple files | Re-dispatch implementer |
+| Architectural concerns | Escalate to user |
+
+**Re-dispatch context:**
+
+When re-dispatching implementer after finding issues, include:
+1. The specific flag that triggered the review
+2. The orchestrator's analysis of the issue
+3. The required fix
+4. Relevant file paths
+
+**Loop prevention:**
+
+Orchestrator-initiated re-dispatches are subject to the same "2 attempts" limit as regular failures. After 2 failed fix attempts:
+- Minor issue → Log it, mark task complete, note in final report
+- Blocking issue → Escalate to user with full context
+
+**Edge case: Missing or malformed Review Summary**
+
+If the code quality reviewer doesn't produce a Review Summary:
+1. Re-dispatch reviewer with format reminder
+2. If still missing, fall back to `git diff HEAD~1` and proceed with review
+
+Fallback review outcomes follow the same action matrix.
+
 ## Prompt Templates
 
 - `./implementer-prompt.md` - Dispatch implementer subagent
