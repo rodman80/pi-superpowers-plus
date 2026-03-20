@@ -208,5 +208,6 @@ describe("Phase Tracking Integration Tests", () => {
     const stateEntries = appendedEntries.filter((e: any) => e.customType === "superpowers_state");
     const lastState = stateEntries[stateEntries.length - 1].data.workflow;
     expect(lastState.phases.review).toBe("skipped");
+    expect(lastState.currentPhase).toBe("finish");
   });
 });
