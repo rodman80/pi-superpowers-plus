@@ -124,4 +124,89 @@ describe("Phase Tracking Integration Tests", () => {
     expect(lastState.phases.plan).toBe("complete");
     expect(lastState.phases.execute).toBe("complete");
   });
+
+  test("git push during finish marks review as complete", async () => {
+    const { api, handlers, appendedEntries } = createFakePi({ withAppendEntry: true });
+    workflowMonitorExtension(api as any);
+
+    const inputHandler = getSingleHandler(handlers, "input");
+    const toolResultHandler = getSingleHandler(handlers, "tool_result");
+
+    await inputHandler(
+      { text: "/skill:finishing-a-development-branch" },
+      { hasUI: false, sessionManager: { getBranch: () => [] }, ui: { setWidget: () => {}, select: () => {}, setEditorText: () => {}, notify: () => {} } },
+    );
+
+    await toolResultHandler(
+      {
+        toolCallId: "tc1",
+        toolName: "bash",
+        input: { command: "git push origin main" },
+        content: [{ type: "text", text: "pushed" }],
+        details: { exitCode: 0 },
+      },
+      { hasUI: false, sessionManager: { getBranch: () => [] }, ui: { setWidget: () => {}, select: () => {}, setEditorText: () => {}, notify: () => {} } },
+    );
+
+    const stateEntries = appendedEntries.filter((e: any) => e.customType === "superpowers_state");
+    const lastState = stateEntries[stateEntries.length - 1].data.workflow;
+    expect(lastState.phases.review).toBe("complete");
+    expect(lastState.currentPhase).toBe("finish");
+  });
+
+  test("gh pr create during finish marks review as complete", async () => {
+    const { api, handlers, appendedEntries } = createFakePi({ withAppendEntry: true });
+    workflowMonitorExtension(api as any);
+
+    const inputHandler = getSingleHandler(handlers, "input");
+    const toolResultHandler = getSingleHandler(handlers, "tool_result");
+
+    await inputHandler(
+      { text: "/skill:finishing-a-development-branch" },
+      { hasUI: false, sessionManager: { getBranch: () => [] }, ui: { setWidget: () => {}, select: () => {}, setEditorText: () => {}, notify: () => {} } },
+    );
+
+    await toolResultHandler(
+      {
+        toolCallId: "tc1",
+        toolName: "bash",
+        input: { command: "gh pr create --title 'Feature'" },
+        content: [{ type: "text", text: "created PR #123" }],
+        details: { exitCode: 0 },
+      },
+      { hasUI: false, sessionManager: { getBranch: () => [] }, ui: { setWidget: () => {}, select: () => {}, setEditorText: () => {}, notify: () => {} } },
+    );
+
+    const stateEntries = appendedEntries.filter((e: any) => e.customType === "superpowers_state");
+    const lastState = stateEntries[stateEntries.length - 1].data.workflow;
+    expect(lastState.phases.review).toBe("complete");
+  });
+
+  test("git merge during finish marks review as skipped", async () => {
+    const { api, handlers, appendedEntries } = createFakePi({ withAppendEntry: true });
+    workflowMonitorExtension(api as any);
+
+    const inputHandler = getSingleHandler(handlers, "input");
+    const toolResultHandler = getSingleHandler(handlers, "tool_result");
+
+    await inputHandler(
+      { text: "/skill:finishing-a-development-branch" },
+      { hasUI: false, sessionManager: { getBranch: () => [] }, ui: { setWidget: () => {}, select: () => {}, setEditorText: () => {}, notify: () => {} } },
+    );
+
+    await toolResultHandler(
+      {
+        toolCallId: "tc1",
+        toolName: "bash",
+        input: { command: "git merge feature-branch" },
+        content: [{ type: "text", text: "merged" }],
+        details: { exitCode: 0 },
+      },
+      { hasUI: false, sessionManager: { getBranch: () => [] }, ui: { setWidget: () => {}, select: () => {}, setEditorText: () => {}, notify: () => {} } },
+    );
+
+    const stateEntries = appendedEntries.filter((e: any) => e.customType === "superpowers_state");
+    const lastState = stateEntries[stateEntries.length - 1].data.workflow;
+    expect(lastState.phases.review).toBe("skipped");
+  });
 });
