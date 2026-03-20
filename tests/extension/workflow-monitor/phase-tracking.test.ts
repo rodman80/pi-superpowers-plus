@@ -34,4 +34,37 @@ describe("Phase Tracking Integration Tests", () => {
     expect(lastState?.currentPhase).toBe("brainstorm");
     expect(lastState?.phases.execute).toBe("pending");
   });
+
+  test("tests passing during finish phase marks verify as complete", async () => {
+    const { api, handlers, appendedEntries } = createFakePi({ withAppendEntry: true });
+    workflowMonitorExtension(api as any);
+
+    const inputHandler = getSingleHandler(handlers, "input");
+    const toolResultHandler = getSingleHandler(handlers, "tool_result");
+
+    // Advance to finish phase
+    await inputHandler(
+      { text: "/skill:finishing-a-development-branch" },
+      { hasUI: false, sessionManager: { getBranch: () => [] }, ui: { setWidget: () => {}, select: () => {}, setEditorText: () => {}, notify: () => {} } },
+    );
+
+    // Simulate tests passing
+    await toolResultHandler(
+      {
+        toolCallId: "tc1",
+        toolName: "bash",
+        input: { command: "npm test" },
+        content: [{ type: "text", text: "5 tests passed" }],
+        details: { exitCode: 0 },
+      },
+      { hasUI: false, sessionManager: { getBranch: () => [] }, ui: { setWidget: () => {}, select: () => {}, setEditorText: () => {}, notify: () => {} } },
+    );
+
+    // Verify should now be complete
+    const stateEntries = appendedEntries.filter((e: any) => e.customType === "superpowers_state");
+    expect(stateEntries.length).toBeGreaterThan(0);
+    const lastState = stateEntries[stateEntries.length - 1].data.workflow;
+    expect(lastState.phases.verify).toBe("complete");
+    expect(lastState.currentPhase).toBe("finish");
+  });
 });
