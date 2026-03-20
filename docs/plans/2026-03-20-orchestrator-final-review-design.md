@@ -40,7 +40,7 @@ After code quality reviewer approves, the orchestrator:
 
 ### Review Summary Format
 
-The code-quality-reviewer must produce this structured output:
+The code-quality-reviewer must produce this structured output at the end of their review:
 
 ```markdown
 ## Review Summary
@@ -53,9 +53,19 @@ The code-quality-reviewer must produce this structured output:
 
 **Flags for orchestrator:** [list of flags requiring orchestrator attention, or "none"]
 - Examples: "Modified shared utility", "Changed internal API signature", "Touched hot path", "New dependency added"
+- A module is considered "shared" if imported by 2+ other files
 
 **Verdict:** ✅ Approved / ❌ Needs fixes
 ```
+
+### Edge Case: Missing or Malformed Review Summary
+
+If the code quality reviewer doesn't produce a Review Summary or produces a malformed one:
+
+1. **Re-dispatch reviewer** with a reminder: "Your review is missing the required Review Summary section. Please add it in the format specified."
+2. **If re-dispatch also fails**, the orchestrator falls back to reading `git diff HEAD~1` directly and proceeds with the review
+
+This ensures the workflow doesn't stall on reviewer non-compliance while maintaining quality.
 
 ### Context Control Strategy
 
@@ -89,8 +99,8 @@ To prevent context explosion:
    - Update DOT diagram with new flow
    - Update example workflow to show orchestrator review
 
-2. **`skills/subagent-driven-development/code-quality-reviewer-prompt.md`**
-   - Add required Review Summary output format
+2. **`skills/requesting-code-review/code-reviewer.md`**
+   - Add required Review Summary output format at the end of the review template
 
 ### No New Files Required
 
@@ -105,7 +115,7 @@ digraph process {
     "Dispatch code quality reviewer" [shape=box];
     "Code quality reviewer approves?" [shape=diamond];
     "Orchestrator reads Review Summary" [shape=box];
-    "Flags or concerns?" [shape=diamond];
+    "Flags present?" [shape=diamond];
     "Orchestrator reviews flagged files" [shape=box];
     "Issues found?" [shape=diamond];
     "Small fix (see matrix)?" [shape=diamond];
@@ -118,9 +128,9 @@ digraph process {
     "Code quality reviewer approves?" -> "Implementer fixes" [label="no"];
     "Implementer fixes" -> "Dispatch code quality reviewer" [label="re-review"];
     "Code quality reviewer approves?" -> "Orchestrator reads Review Summary" [label="yes"];
-    "Orchestrator reads Review Summary" -> "Flags or concerns?";
-    "Flags or concerns?" -> "Mark task complete" [label="no"];
-    "Flags or concerns?" -> "Orchestrator reviews flagged files" [label="yes"];
+    "Orchestrator reads Review Summary" -> "Flags present?";
+    "Flags present?" -> "Mark task complete" [label="no"];
+    "Flags present?" -> "Orchestrator reviews flagged files" [label="yes"];
     "Orchestrator reviews flagged files" -> "Issues found?";
     "Issues found?" -> "Mark task complete" [label="no"];
     "Issues found?" -> "Small fix (see matrix)?" [label="yes"];
@@ -217,7 +227,8 @@ Task 4: API client
 
 ## Success Criteria
 
-- Orchestrator review catches at least one consistency issue per 3-4 tasks (observed in practice)
+- Orchestrator review catches consistency issues when they exist (not forcing false positives)
+- Zero regressions to completed tasks discovered in later tasks
 - No significant context growth for orchestrator (measured by token usage)
 - Workflow remains fast — orchestrator review adds <30 seconds per task
 - Clear action boundaries — no ambiguity about when to fix vs re-dispatch
