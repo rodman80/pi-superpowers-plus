@@ -588,13 +588,13 @@ describe("workflow-monitor state reconstruction + persistence wiring", () => {
     expect(handler.getFullState()).toEqual(newer);
   });
 
-  test("persists when a skill file is read via read tool result", async () => {
+  test("does NOT persist or advance phase when reading a skill file", async () => {
     const fake = createFakePi({ withAppendEntry: true });
-    const tempDir = process.cwd(); // createFakePi already called withTempCwd()
     workflowMonitorExtension(fake.api as any);
 
     const onToolResult = getSingleHandler(fake.handlers, "tool_result");
 
+    // Read a skill file - should NOT trigger phase advancement
     await onToolResult(
       {
         toolCallId: "call-1",
@@ -606,14 +606,8 @@ describe("workflow-monitor state reconstruction + persistence wiring", () => {
       { hasUI: false, sessionManager: { getBranch: () => [] }, ui: { setWidget: () => {} } },
     );
 
-    expect(fake.appendedEntries.length).toBe(1);
-    expect(fake.appendedEntries[0]?.customType).toBe("superpowers_state");
-    expect(fake.appendedEntries[0]?.data.workflow.currentPhase).toBe("plan");
-
-    const statePath = path.join(tempDir, ".pi", "superpowers-state.json");
-    expect(fs.existsSync(statePath)).toBe(true);
-
-    const persisted = JSON.parse(fs.readFileSync(statePath, "utf-8"));
-    expect(persisted.workflow.currentPhase).toBe("plan");
+    // No state should be persisted from skill file reads
+    // (prevents spurious phase transitions when Pi loads available skills)
+    expect(fake.appendedEntries.length).toBe(0);
   });
 });

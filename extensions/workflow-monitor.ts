@@ -529,9 +529,6 @@ export default function (pi: ExtensionAPI) {
     if (event.toolName === "read") {
       // biome-ignore lint/suspicious/noExplicitAny: pi SDK event input type
       const path = ((event.input as Record<string, any>).path as string) ?? "";
-      if (handler.handleSkillFileRead(path)) {
-        persistState();
-      }
       handler.handleReadOrInvestigation("read", path);
     }
 
