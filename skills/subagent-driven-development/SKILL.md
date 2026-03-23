@@ -166,8 +166,8 @@ Fallback review outcomes follow the same action matrix.
 ## Prompt Templates
 
 - `./implementer-prompt.md` - Dispatch implementer subagent
-- `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent
-- `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent
+- `./quality-spec-reviewer-prompt.md` - Dispatch Quality+Spec reviewer subagent
+- `./critical-reviewer-prompt.md` - Dispatch Critical/Safety reviewer subagent
 
 **How to dispatch:**
 
@@ -178,11 +178,11 @@ subagent({ agent: "implementer", task: "... full implementer prompt text ..." })
 ```
 
 ```ts
-subagent({ agent: "spec-reviewer", task: "... full review prompt text ..." })
+subagent({ agent: "quality-spec-reviewer", task: "... full quality+spec review prompt text ..." })
 ```
 
 ```ts
-subagent({ agent: "code-reviewer", task: "... full review prompt text ..." })
+subagent({ agent: "critical-reviewer", task: "... full critical/safety review prompt text ..." })
 ```
 
 ## Handling Implementer Status
