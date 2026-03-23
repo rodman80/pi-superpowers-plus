@@ -202,7 +202,7 @@ subagent({ agent: "critical-reviewer", agentScope: "both", task: "... full criti
 
 Implementer subagents report one of four statuses. Handle them explicitly:
 
-- **`DONE`** — proceed to spec compliance review
+- **`DONE`** — proceed to Quality+Spec review
 - **`DONE_WITH_CONCERNS`** — read the concerns before proceeding; if they affect correctness or scope, address them first
 - **`NEEDS_CONTEXT`** — provide the missing context and re-dispatch
 - **`BLOCKED`** — change something before retrying: provide more context, use a stronger model, split the task, or escalate to the user
@@ -243,6 +243,7 @@ Quality+Spec reviewer:
 [Get git SHAs, dispatch Critical/Safety reviewer]
 Critical reviewer:
   - Affected dependents: none identified
+  - Flags for orchestrator: shared config module (new dependency)
   - Side effect risk: None
   - Security risks: none
   - Debris: none
