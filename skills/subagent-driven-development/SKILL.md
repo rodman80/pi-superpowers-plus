@@ -154,7 +154,7 @@ When the Critical/Safety reviewer finds issues, use this matrix to decide who fi
 | Complex technical risk | Re-dispatch implementer with context |
 | Architectural problem | Escalate to user |
 
-**Re-dispatch context:**
+#### Re-dispatch Context
 
 When re-dispatching implementer after finding issues, include:
 1. The specific flag that triggered the review
@@ -168,7 +168,7 @@ Orchestrator-initiated re-dispatches are subject to the same "2 attempts" limit 
 - Minor issue → Log it, mark task complete, note in final report
 - Blocking issue → Escalate to user with full context
 
-**Edge case: Missing or malformed Review Summary**
+#### Edge Case: Missing or Malformed Review Summary
 
 If the Critical/Safety reviewer doesn't produce a Review Summary:
 1. Re-dispatch reviewer with format reminder
