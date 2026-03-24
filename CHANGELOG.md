@@ -11,6 +11,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Two-stage review agents** — `quality-spec-reviewer` and `critical-reviewer` bundled agents for the new two-stage review system (quality+spec first, then critical/safety).
 - **Spec document review prompts** — `brainstorming` now ships a bundled `spec-document-reviewer-prompt.md` and instructs the agent to run a review loop before handing off to planning.
 - **Plan document review prompts** — `writing-plans` now ships a bundled `plan-document-reviewer-prompt.md` for chunk-level plan review before execution.
 - **Implementer status in subagent structured results** — single-agent `subagent` responses now surface `implementerStatus` when the implementer reports `DONE`, `DONE_WITH_CONCERNS`, `BLOCKED`, or `NEEDS_CONTEXT`.
@@ -24,6 +25,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Removed
 
 - **`tdd-guard` extension** — TDD enforcement is now handled via runtime warnings in `workflow-monitor` and three-scenario TDD instructions embedded in agent profiles and skill text. Agent profiles no longer need `extensions: ../extensions/tdd-guard.ts` in their frontmatter.
+- **`spec-reviewer` agent** — replaced by the two-stage review system (`quality-spec-reviewer` + `critical-reviewer`).
 
 ---
 
@@ -48,7 +50,7 @@ Hardening and skill boundary enforcement. Security fixes, resilient subagent lif
 ### Fixed
 
 - **SDD orchestrator codes on subagent failure** — Promoted subagent failure handling from buried bullet points to a gated section with hard rules. Explicit: the orchestrator does NOT write code, only dispatches subagents. 2 failed attempts = stop and escalate to user.
-- **Review subagents apply fixes** — Added explicit read-only `## Boundaries` sections to `code-reviewer.md` and `spec-reviewer-prompt.md`. Reviewers produce written reports — they never touch code.
+- **Review subagents apply fixes** — Added explicit read-only `## Boundaries` sections to `code-reviewer.md`. Reviewers produce written reports — they never touch code.
 - **SDD auto-finishes without asking** — Added user checkpoint after all tasks complete. Orchestrator must summarize results and wait for user confirmation before dispatching final review or starting the finishing skill.
 - Silent catch blocks in workflow-monitor now log warnings via `log.warn` instead of silently swallowing failures (state file read/write errors).
 
@@ -67,11 +69,11 @@ First-class subagent support. Skills now dispatch implementation and review work
 ### Added
 
 - **Subagent extension** (`extensions/subagent/`) — vendored from pi's example extension. Registers a `subagent` tool that spawns isolated pi subprocesses for implementation and review tasks. Supports single-agent and parallel (multi-task) modes.
-- **Agent definitions** (`agents/`) — four bundled agent profiles:
+- **Agent definitions** (`agents/`) — bundled agent profiles:
   - `implementer` — strict TDD implementation with the tdd-guard extension
   - `worker` — general-purpose task execution
   - `code-reviewer` — production readiness review (read-only)
-  - `spec-reviewer` — plan/spec compliance verification (read-only)
+  - `doc-reviewer` — spec/plan document review (read-only)
 - **Agent frontmatter `extensions` field** — agent `.md` files can declare extensions (e.g. `extensions: ../extensions/tdd-guard.ts`), which are resolved and passed as `--extension` flags to the subprocess.
 - **TDD guard extension** (`extensions/tdd-guard.ts`) — lightweight TDD enforcement designed for subagents. Blocks production file writes until a passing test run is observed. Tracks violations via `PI_TDD_GUARD_VIOLATIONS_FILE` env var. Exits after 3 consecutive blocked writes.
 - **Structured subagent results** — single-agent mode returns `filesChanged`, `testsRan`, `tddViolations`, `agent`, `task`, and `status` fields in tool result details.

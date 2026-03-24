@@ -138,7 +138,7 @@ The "mature package" release. Fill testing gaps, address known skill blindspots,
 **Completed (v0.3.0):**
 - SDD orchestrator boundary enforcement (never code directly, re-dispatch or escalate)
 - User checkpoint before final review/finishing phase
-- Read-only boundaries on code-reviewer and spec-reviewer prompts
+- Read-only boundaries on reviewer prompts
 
 ---
 

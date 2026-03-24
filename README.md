@@ -276,7 +276,8 @@ A bundled `subagent` tool lets the orchestrating agent spawn isolated subprocess
 | `worker` | General-purpose task execution | read, write, edit, bash, lsp | — |
 | `doc-reviewer` | Spec/plan document review | read, bash, find, grep, ls (read-only) | — |
 | `code-reviewer` | Production readiness review | read, bash (read-only) | — |
-| `spec-reviewer` | Plan/spec compliance check | read, bash (read-only) | — |
+| `quality-spec-reviewer` | Quality + spec compliance check (two-stage review) | read, bash, find, grep, ls (read-only) | — |
+| `critical-reviewer` | Critical/safety review: side effects, security, debris (two-stage review) | read, bash, find, grep, ls (read-only) | — |
 
 Agent definitions live in `agents/*.md` and use YAML frontmatter to declare tools, model, extensions, and a system prompt body.
 
@@ -344,11 +345,13 @@ Based on [Superpowers](https://github.com/obra/superpowers) by Jesse Vincent, po
 
 ```
 pi-superpowers-plus/
-├── agents/                            # Bundled agent definitions (4 agents)
+├── agents/                            # Bundled agent definitions (6 agents)
 │   ├── implementer.md                 # Strict TDD implementation agent
 │   ├── worker.md                      # General-purpose task agent
 │   ├── code-reviewer.md               # Production readiness reviewer
-│   └── spec-reviewer.md               # Plan/spec compliance reviewer
+│   ├── doc-reviewer.md                # Spec/plan document reviewer
+│   ├── quality-spec-reviewer.md       # Quality + spec compliance (two-stage review)
+│   └── critical-reviewer.md           # Critical/safety reviewer (two-stage review)
 ├── extensions/
 │   ├── logging.ts                     # File-based diagnostic logger (10KB truncation, time-based rotation)
 │   ├── plan-tracker.ts                # Task tracking tool + TUI widget
