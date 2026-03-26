@@ -109,6 +109,16 @@ git commit -m "feat: add specific feature"
 ```
 ```
 
+## No Placeholders
+
+Every step must contain the actual content an engineer needs. These are **plan failures** — never write them:
+- "TBD", "TODO", "implement later", "fill in details"
+- "Add appropriate error handling" / "add validation" / "handle edge cases"
+- "Write tests for the above" (without actual test code)
+- "Similar to Task N" (repeat the code — the engineer may be reading tasks out of order)
+- Steps that describe what to do without showing how (code blocks required for code steps)
+- References to types, functions, or methods not defined in any task
+
 ## Remember
 - Exact file paths always
 - Complete code in plan (not "add validation")
@@ -118,19 +128,17 @@ git commit -m "feat: add specific feature"
 - Order tasks so each task's dependencies are completed by earlier tasks
 - If plan exceeds ~8 tasks, consider splitting into phases with a checkpoint between them
 
-## Plan Review Loop
+## Self-Review
 
-After completing each chunk of the plan:
+Depois de escrever o plano completo, olhe para a spec com olhos frescos e revise o plano contra ela. Este é um checklist que você mesmo executa — não um dispatch de subagente.
 
-1. Fill the template at `plan-document-reviewer-prompt.md` for the current chunk
-2. Dispatch it with `subagent({ agent: "doc-reviewer", task: "... filled template ..." })`
-3. If issues are found:
-   - fix the chunk
-   - re-dispatch the reviewer
-   - repeat until approved
-4. If the loop exceeds 5 iterations, stop and ask the user for guidance
+**1. Cobertura da spec:** Percorra cada seção/requisito da spec. Você consegue apontar uma task que o implementa? Liste as lacunas.
 
-**Chunk boundaries:** Use `## Chunk N: <name>` headings when helpful. Keep each chunk logically self-contained and under 1000 lines.
+**2. Scan de placeholders:** Procure no plano por red flags — qualquer um dos padrões da seção "No Placeholders" acima. Corrija-os.
+
+**3. Consistência de tipos:** Os tipos, assinaturas de métodos e nomes de propriedades usados em tasks posteriores batem com o que você definiu em tasks anteriores? Uma função chamada `clearLayers()` na Task 3 mas `clearFullLayers()` na Task 7 é um bug.
+
+Se encontrar problemas, corrija inline. Não é necessário re-revisar — apenas corrija e siga em frente. Se encontrar um requisito da spec sem task correspondente, adicione a task.
 
 ## Execution Handoff
 

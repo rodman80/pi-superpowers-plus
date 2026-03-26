@@ -19,6 +19,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - **`brainstorming` skill synced with upstream 5.x structure** — adds hard gate/checklist discipline, scope decomposition, design-for-isolation guidance, spec review loop, and explicit user approval of the written spec while preserving Pi-specific `docs/plans/` and `plan_tracker` behavior.
+- **`writing-plans` simplified plan review** — removido o loop de review com subagente (`doc-reviewer`) e chunks de 1000 linhas. Substituído por: (1) seção "No Placeholders" com red flags explícitos e (2) checklist de Self-Review inline (cobertura da spec, scan de placeholders, consistência de tipos). Alinhado ao upstream v5.0.4 + v5.0.6 — qualidade equivalente, sem overhead de latência.
 - **`writing-plans` skill synced with upstream 5.x planning guidance** — adds scope checks, file-structure planning, checkbox task syntax, and plan review loops while keeping Pi-specific execution handoff.
 - **Subagent orchestration strengthened** — `subagent-driven-development`, implementer prompts, and bundled agent profiles now use the new escalation/status protocol and architecture-aware review criteria.
 
