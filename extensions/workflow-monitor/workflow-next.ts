@@ -21,6 +21,10 @@ function isPhase(value: string): value is Phase {
   return WORKFLOW_PHASES.includes(value as Phase);
 }
 
+function getPriorWorkflowPhases(targetPhase: Phase): Phase[] {
+  return WORKFLOW_PHASES.slice(0, WORKFLOW_PHASES.indexOf(targetPhase));
+}
+
 function dedupePhases(phases: Phase[]): Phase[] {
   return [...new Set(phases)];
 }
@@ -35,19 +39,14 @@ export function parseWorkflowNextArgs(args: string): WorkflowNextParseResult | n
 
   let targetPhase: Phase | null = null;
   const donePhases: Phase[] = [];
-  let artifactPath: string | undefined;
+  const artifactTokens: string[] = [];
 
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index];
 
-    if (artifactPath) {
-      artifactPath = `${artifactPath} ${token}`;
-      continue;
-    }
-
     if (token === "--done") {
       const phase = tokens[index + 1];
-      if (!phase || !isPhase(phase)) return null;
+      if (!targetPhase || !phase || !getPriorWorkflowPhases(targetPhase).includes(phase as Phase)) return null;
       donePhases.push(phase);
       index += 1;
       continue;
@@ -62,14 +61,14 @@ export function parseWorkflowNextArgs(args: string): WorkflowNextParseResult | n
       return null;
     }
 
-    artifactPath = token;
+    artifactTokens.push(token);
   }
 
   if (!targetPhase) return null;
 
   return {
     targetPhase,
-    artifactPath,
+    artifactPath: artifactTokens.length > 0 ? artifactTokens.join(" ") : undefined,
     donePhases: dedupePhases(donePhases),
   };
 }
@@ -155,54 +154,58 @@ export function getWorkflowNextArgumentCompletions(argumentPrefix: string): Auto
   }
 
   const tokens = trimmed.split(/\s+/).filter(Boolean);
-  const [targetPhase, ...rest] = tokens;
+  const [targetPhase] = tokens;
   if (!isPhase(targetPhase)) {
     return [];
   }
+  const priorPhases = getPriorWorkflowPhases(targetPhase);
 
-  if (rest.length === 0) {
-    return [createDoneFlagCompletion([targetPhase])];
+  function createDonePhaseCompletions(baseTokens: string[], partial = ""): AutocompleteItem[] {
+    return priorPhases
+      .filter((phase) => phase.startsWith(partial))
+      .map((phase) => ({
+        value: `${baseTokens.join(" ")} ${phase}`,
+        label: phase,
+        description: `Declare ${phase} complete`,
+      }));
   }
 
-  for (let index = 0; index < rest.length; index += 1) {
-    const token = rest[index];
-    const nextToken = rest[index + 1];
-    const isLastToken = index === rest.length - 1;
+  const completedTokens = hasTrailingWhitespace ? tokens : tokens.slice(0, -1);
+  const currentPartial = hasTrailingWhitespace ? "" : (tokens.at(-1) ?? "");
+
+  let expectingDonePhase = false;
+  for (let index = 1; index < completedTokens.length; index += 1) {
+    const token = completedTokens[index];
+
+    if (expectingDonePhase) {
+      if (!priorPhases.includes(token as Phase)) {
+        return [];
+      }
+      expectingDonePhase = false;
+      continue;
+    }
 
     if (token === "--done") {
-      if (isLastToken) {
-        return hasTrailingWhitespace
-          ? WORKFLOW_PHASES.map((phase) => ({
-              value: `${prefix}${phase}`,
-              label: phase,
-              description: `Declare ${phase} complete`,
-            }))
-          : [createDoneFlagCompletion([targetPhase, ...rest.slice(0, index)])];
-      }
+      expectingDonePhase = true;
+      continue;
+    }
 
-      if (isPhase(nextToken)) {
-        index += 1;
-        continue;
-      }
-
-      if (index === rest.length - 2 && !hasTrailingWhitespace) {
-        const base = `${tokens.slice(0, -1).join(" ")} `;
-        return WORKFLOW_PHASES.filter((phase) => phase.startsWith(nextToken)).map((phase) => ({
-          value: `${base}${phase}`,
-          label: phase,
-          description: `Declare ${phase} complete`,
-        }));
-      }
-
+    if (token.startsWith("--")) {
       return [];
     }
-
-    if (isLastToken && token.startsWith("--")) {
-      return "--done".startsWith(token) ? [createDoneFlagCompletion([targetPhase, ...rest.slice(0, index)])] : [];
-    }
-
-    return [];
   }
 
-  return [createDoneFlagCompletion([targetPhase, ...rest])];
+  if (expectingDonePhase) {
+    return createDonePhaseCompletions(completedTokens, currentPartial);
+  }
+
+  if (currentPartial.length === 0) {
+    return [createDoneFlagCompletion(completedTokens)];
+  }
+
+  if (currentPartial.startsWith("--")) {
+    return "--done".startsWith(currentPartial) ? [createDoneFlagCompletion(completedTokens)] : [];
+  }
+
+  return [];
 }
