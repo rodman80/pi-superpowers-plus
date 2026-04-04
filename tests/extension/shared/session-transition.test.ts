@@ -12,13 +12,13 @@ describe("session transition adapter", () => {
         type: "session_start",
         reason: "new",
         previousSessionFile: "/tmp/prev.jsonl",
-      } as any),
+      }),
     ).toEqual<SessionTransition>({
       cause: "new",
       previousSessionFile: "/tmp/prev.jsonl",
       shouldReconstructState: true,
       shouldClearEphemeralState: true,
-      shouldResetBranchSafety: true,
+      shouldResetBranchSafety: false,
     });
   });
 
@@ -27,12 +27,12 @@ describe("session transition adapter", () => {
       normalizeSessionTransition({
         type: "session_start",
         reason: "reload",
-      } as any),
+      }),
     ).toMatchObject({
       cause: "reload",
       shouldReconstructState: true,
       shouldClearEphemeralState: true,
-      shouldResetBranchSafety: true,
+      shouldResetBranchSafety: false,
     });
   });
 
@@ -40,7 +40,7 @@ describe("session transition adapter", () => {
     expect(
       normalizeSessionTransition({
         type: "session_tree",
-      } as any),
+      }),
     ).toMatchObject({
       cause: "tree",
       shouldReconstructState: true,
@@ -50,12 +50,20 @@ describe("session transition adapter", () => {
   });
 
   test("supports legacy compatibility events when present", () => {
-    expect(normalizeSessionTransition({ type: "session_switch" } as any)?.cause).toBe("legacy-switch");
-    expect(normalizeSessionTransition({ type: "session_fork" } as any)?.cause).toBe("legacy-fork");
+    expect(normalizeSessionTransition({ type: "session_switch" })?.cause).toBe("legacy-switch");
+    expect(normalizeSessionTransition({ type: "session_fork" })?.cause).toBe("legacy-fork");
+  });
+
+  test("returns null for unknown event types", () => {
+    expect(normalizeSessionTransition({ type: "session_resume" })).toBeNull();
   });
 
   test("identifies transitions that should trigger reset behavior", () => {
-    expect(isSessionResetTransition({ cause: "startup" } as SessionTransition)).toBe(true);
-    expect(isSessionResetTransition({ cause: "tree" } as SessionTransition)).toBe(true);
+    expect(
+      isSessionResetTransition(normalizeSessionTransition({ type: "session_start", reason: "startup" })!),
+    ).toBe(true);
+    expect(
+      isSessionResetTransition(normalizeSessionTransition({ type: "session_start", reason: "reload" })!),
+    ).toBe(false);
   });
 });
