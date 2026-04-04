@@ -138,6 +138,7 @@ describe("WorkflowHandler aggregated state persistence", () => {
           review: false,
           finish: false,
         },
+        declaredCompletePhases: ["brainstorm"],
       },
       tdd: {
         phase: "green",
@@ -206,6 +207,9 @@ describe("WorkflowHandler aggregated state persistence", () => {
     ).not.toThrow();
 
     expect(handler.getFullState()).toMatchObject({
+      workflow: {
+        declaredCompletePhases: [],
+      },
       tdd: {
         phase: "red",
         testFiles: [],
@@ -222,6 +226,20 @@ describe("WorkflowHandler aggregated state persistence", () => {
         verificationWaived: true,
       },
     });
+  });
+
+  test("setFullState merges declared complete phases with defaults", () => {
+    const handler = createWorkflowHandler();
+
+    handler.setFullState({
+      workflow: {
+        declaredCompletePhases: ["brainstorm", "plan"],
+      },
+    });
+
+    expect(handler.getFullState().workflow.declaredCompletePhases).toEqual(["brainstorm", "plan"]);
+    expect(handler.getFullState().workflow.currentPhase).toBeNull();
+    expect(handler.getFullState().workflow.phases.execute).toBe("pending");
   });
 
   test("handleSkillFileRead delegates to workflow tracker", () => {
@@ -311,6 +329,7 @@ describe("file-based state persistence", () => {
           review: false,
           finish: false,
         },
+        declaredCompletePhases: ["brainstorm"],
       },
       tdd: {
         phase: "green",
@@ -390,6 +409,7 @@ describe("file-based state persistence", () => {
           review: false,
           finish: false,
         },
+        declaredCompletePhases: ["brainstorm"],
       },
       tdd: {
         phase: "green",
@@ -444,6 +464,7 @@ describe("workflow-monitor state reconstruction + persistence wiring", () => {
           review: false,
           finish: false,
         },
+        declaredCompletePhases: ["brainstorm"],
       },
       tdd: {
         phase: "green",
@@ -534,6 +555,7 @@ describe("workflow-monitor state reconstruction + persistence wiring", () => {
         currentPhase: "brainstorm",
         artifacts: { brainstorm: null, plan: null, execute: null, verify: null, review: null, finish: null },
         prompted: { brainstorm: false, plan: false, execute: false, verify: false, review: false, finish: false },
+        declaredCompletePhases: [],
       },
       tdd: { phase: "red", testFiles: ["tests/old.test.ts"], sourceFiles: [], redVerificationPending: false },
       debug: { active: false, investigated: false, fixAttempts: 0 },
@@ -560,6 +582,7 @@ describe("workflow-monitor state reconstruction + persistence wiring", () => {
           finish: null,
         },
         prompted: { brainstorm: true, plan: false, execute: false, verify: false, review: false, finish: false },
+        declaredCompletePhases: ["brainstorm"],
       },
       tdd: {
         phase: "green",

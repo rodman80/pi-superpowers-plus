@@ -4,6 +4,10 @@ export function isPhaseUnresolved(status: PhaseStatus): boolean {
   return status === "pending";
 }
 
+export function isPhaseResolved(phase: Phase, state: WorkflowTrackerState): boolean {
+  return state.declaredCompletePhases.includes(phase) || !isPhaseUnresolved(state.phases[phase]);
+}
+
 export function getUnresolvedPhasesBefore(target: Phase, state: WorkflowTrackerState): Phase[] {
   const targetIndex = WORKFLOW_PHASES.indexOf(target);
   if (targetIndex === -1) {
@@ -15,5 +19,5 @@ export function getUnresolvedPhasesBefore(target: Phase, state: WorkflowTrackerS
 }
 
 export function getUnresolvedPhases(phases: Phase[], state: WorkflowTrackerState): Phase[] {
-  return phases.filter((phase) => isPhaseUnresolved(state.phases[phase]));
+  return phases.filter((phase) => !isPhaseResolved(phase, state));
 }

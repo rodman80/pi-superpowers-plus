@@ -109,6 +109,29 @@ describe("WorkflowTracker", () => {
     expect(tracker.getState().artifacts.brainstorm).toBe("docs/plans/2026-02-10-x-design.md");
   });
 
+  test("declared completions persist separately from inferred status", () => {
+    tracker.advanceTo("execute");
+
+    tracker.declareComplete("brainstorm");
+    tracker.declareComplete("plan");
+
+    const state = tracker.getState();
+    expect(state.declaredCompletePhases).toEqual(["brainstorm", "plan"]);
+    expect(state.phases.execute).toBe("active");
+    expect(state.phases.brainstorm).toBe("pending");
+    expect(state.phases.plan).toBe("pending");
+  });
+
+  test("declared completions survive state round-trip", () => {
+    tracker.declareComplete("brainstorm");
+    tracker.declareComplete("plan");
+
+    const restored = new WorkflowTracker();
+    restored.setState(tracker.getState());
+
+    expect(restored.getState().declaredCompletePhases).toEqual(["brainstorm", "plan"]);
+  });
+
   test("reset() restores tracker to empty state regardless of prior state", () => {
     tracker.advanceTo("execute");
     tracker.recordArtifact("plan", "docs/plans/2026-02-20-foo.md");
@@ -121,6 +144,7 @@ describe("WorkflowTracker", () => {
     for (const p of WORKFLOW_PHASES) expect(s.phases[p]).toBe("pending");
     for (const p of WORKFLOW_PHASES) expect(s.artifacts[p]).toBeNull();
     for (const p of WORKFLOW_PHASES) expect(s.prompted[p]).toBe(false);
+    expect(s.declaredCompletePhases).toEqual([]);
   });
 });
 

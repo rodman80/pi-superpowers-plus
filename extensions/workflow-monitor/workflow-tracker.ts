@@ -10,6 +10,7 @@ export interface WorkflowTrackerState {
   currentPhase: Phase | null;
   artifacts: Record<Phase, string | null>;
   prompted: Record<Phase, boolean>;
+  declaredCompletePhases: Phase[];
 }
 
 export type TransitionBoundary =
@@ -49,7 +50,7 @@ function emptyState(): WorkflowTrackerState {
 
   const prompted = Object.fromEntries(WORKFLOW_PHASES.map((p) => [p, false])) as Record<Phase, boolean>;
 
-  return { phases, currentPhase: null, artifacts, prompted };
+  return { phases, currentPhase: null, artifacts, prompted, declaredCompletePhases: [] };
 }
 
 export const WORKFLOW_TRACKER_ENTRY_TYPE = "workflow_tracker_state";
@@ -83,7 +84,14 @@ export class WorkflowTracker {
   }
 
   setState(state: WorkflowTrackerState): void {
-    this.state = cloneState(state);
+    this.state = {
+      ...emptyState(),
+      ...cloneState(state),
+      phases: { ...emptyState().phases, ...state.phases },
+      artifacts: { ...emptyState().artifacts, ...state.artifacts },
+      prompted: { ...emptyState().prompted, ...state.prompted },
+      declaredCompletePhases: [...(state.declaredCompletePhases ?? [])],
+    };
   }
 
   reset(): void {
@@ -137,6 +145,26 @@ export class WorkflowTracker {
     const status = this.state.phases[phase];
     if (status !== "pending" && status !== "active") return false;
     this.state.phases[phase] = "complete";
+    return true;
+  }
+
+  declareComplete(phase: Phase): boolean {
+    if (this.state.declaredCompletePhases.includes(phase)) return false;
+    this.state.declaredCompletePhases = [...this.state.declaredCompletePhases, phase];
+    return true;
+  }
+
+  declareCompleteMany(phases: Phase[]): boolean {
+    let changed = false;
+    for (const phase of phases) {
+      changed = this.declareComplete(phase) || changed;
+    }
+    return changed;
+  }
+
+  clearDeclaredCompletePhases(): boolean {
+    if (this.state.declaredCompletePhases.length === 0) return false;
+    this.state.declaredCompletePhases = [];
     return true;
   }
 
@@ -243,7 +271,14 @@ export class WorkflowTracker {
       // biome-ignore lint/suspicious/noExplicitAny: pi SDK session entry type
       const data = (entry as any).data as WorkflowTrackerState | undefined;
       if (data && typeof data === "object") {
-        last = cloneState(data);
+        last = {
+          ...emptyState(),
+          ...cloneState(data),
+          phases: { ...emptyState().phases, ...data.phases },
+          artifacts: { ...emptyState().artifacts, ...data.artifacts },
+          prompted: { ...emptyState().prompted, ...data.prompted },
+          declaredCompletePhases: [...(data.declaredCompletePhases ?? [])],
+        };
       }
     }
 
