@@ -254,9 +254,7 @@ describe("/workflow-next", () => {
     workflowMonitorExtension(fakePi);
 
     expect(command.getArgumentCompletions("")).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ value: "brainstorm", label: "brainstorm" }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ value: "brainstorm", label: "brainstorm" })]),
     );
     expect(command.getArgumentCompletions("")).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ value: "--done ", label: "--done" })]),
@@ -273,5 +271,8 @@ describe("/workflow-next", () => {
     expect(command.getArgumentCompletions("execute --done p")).toEqual(
       expect.arrayContaining([expect.objectContaining({ value: "execute --done plan", label: "plan" })]),
     );
+
+    expect(command.getArgumentCompletions("execute docs/plans/phase.md")).toEqual([]);
+    expect(command.getArgumentCompletions("execute docs/plans/phase.md ")).toEqual([]);
   });
 });

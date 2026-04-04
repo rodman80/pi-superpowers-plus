@@ -16,13 +16,6 @@ import { Text } from "@mariozechner/pi-tui";
 import { Type } from "@sinclair/typebox";
 import { log } from "./logging.js";
 import { getCurrentGitRef } from "./workflow-monitor/git";
-import {
-  buildWorkflowNextPrefill,
-  getWorkflowNextArgumentCompletions,
-  getWorkflowNextFallbackPrompt,
-  getWorkflowNextUsage,
-  parseWorkflowNextArgs,
-} from "./workflow-monitor/workflow-next";
 import { loadReference, REFERENCE_TOPICS } from "./workflow-monitor/reference-tool";
 import { getUnresolvedPhases, getUnresolvedPhasesBefore } from "./workflow-monitor/skip-confirmation";
 import { parseTestCommand, parseTestResult } from "./workflow-monitor/test-runner";
@@ -34,6 +27,13 @@ import {
   getVerificationViolationWarning,
 } from "./workflow-monitor/warnings";
 import { createWorkflowHandler, type Violation, type WorkflowHandler } from "./workflow-monitor/workflow-handler";
+import {
+  buildWorkflowNextPrefill,
+  getWorkflowNextArgumentCompletions,
+  getWorkflowNextFallbackPrompt,
+  getWorkflowNextUsage,
+  parseWorkflowNextArgs,
+} from "./workflow-monitor/workflow-next";
 import {
   computeBoundaryToPrompt,
   type Phase,

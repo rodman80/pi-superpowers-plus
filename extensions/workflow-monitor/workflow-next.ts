@@ -122,6 +122,7 @@ export function getWorkflowNextFallbackPrompt(
 export function getWorkflowNextArgumentCompletions(argumentPrefix: string): AutocompleteItem[] {
   const prefix = argumentPrefix ?? "";
   const trimmed = prefix.trimStart();
+  const hasTrailingWhitespace = /\s$/.test(prefix);
 
   const phaseItems = WORKFLOW_PHASES.map((phase) => ({
     value: phase,
@@ -135,36 +136,67 @@ export function getWorkflowNextArgumentCompletions(argumentPrefix: string): Auto
     description: "Declare an earlier workflow phase complete",
   };
 
-  const doneMatch = prefix.match(/^(.*\s--done\s+)(\S*)$/);
-  if (doneMatch) {
-    const [, base, partial] = doneMatch;
-    return WORKFLOW_PHASES.filter((phase) => phase.startsWith(partial)).map((phase) => ({
-      value: `${base}${phase}`,
-      label: phase,
-      description: `Declare ${phase} complete`,
-    }));
-  }
-
   if (trimmed.length === 0) {
     return phaseItems;
   }
 
   if (!trimmed.includes(" ")) {
     return WORKFLOW_PHASES.filter((phase) => phase.startsWith(trimmed)).map((phase) => ({
-        value: phase,
-        label: phase,
-        description: `Target phase: ${phase}`,
-      }));
+      value: phase,
+      label: phase,
+      description: `Target phase: ${phase}`,
+    }));
   }
 
-  if (prefix.endsWith(" ")) {
-    return [doneFlag];
+  const tokens = trimmed.split(/\s+/).filter(Boolean);
+  const [targetPhase, ...rest] = tokens;
+  if (!isPhase(targetPhase)) {
+    return [];
   }
 
-  const [targetPhase] = trimmed.split(/\s+/, 1);
-  if (isPhase(targetPhase)) {
-    return [doneFlag];
+  if (rest.length === 0) {
+    return hasTrailingWhitespace ? [doneFlag] : [doneFlag];
   }
 
-  return [];
+  for (let index = 0; index < rest.length; index += 1) {
+    const token = rest[index];
+    const nextToken = rest[index + 1];
+    const isLastToken = index === rest.length - 1;
+
+    if (token === "--done") {
+      if (isLastToken) {
+        return hasTrailingWhitespace
+          ? WORKFLOW_PHASES.map((phase) => ({
+              value: `${prefix}${phase}`,
+              label: phase,
+              description: `Declare ${phase} complete`,
+            }))
+          : [doneFlag];
+      }
+
+      if (isPhase(nextToken)) {
+        index += 1;
+        continue;
+      }
+
+      if (index === rest.length - 2 && !hasTrailingWhitespace) {
+        const base = `${tokens.slice(0, -1).join(" ")} `;
+        return WORKFLOW_PHASES.filter((phase) => phase.startsWith(nextToken)).map((phase) => ({
+          value: `${base}${phase}`,
+          label: phase,
+          description: `Declare ${phase} complete`,
+        }));
+      }
+
+      return [];
+    }
+
+    if (isLastToken && token.startsWith("--")) {
+      return "--done".startsWith(token) ? [doneFlag] : [];
+    }
+
+    return [];
+  }
+
+  return hasTrailingWhitespace ? [doneFlag] : [doneFlag];
 }
