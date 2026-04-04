@@ -37,6 +37,7 @@ export type SuperpowersStatePatch = {
     phases?: Partial<Record<Phase, PhaseStatus>>;
     artifacts?: Partial<Record<Phase, string | null>>;
     prompted?: Partial<Record<Phase, boolean>>;
+    declaredCompletePhases?: Phase[];
   };
   tdd?: Partial<SuperpowersStateSnapshot["tdd"]>;
   debug?: Partial<SuperpowersStateSnapshot["debug"]>;
@@ -87,6 +88,8 @@ export interface WorkflowHandler {
   advanceWorkflowTo(phase: Phase): boolean;
   skipWorkflowPhases(phases: Phase[]): boolean;
   completeWorkflowPhase(phase: Phase): boolean;
+  declareWorkflowPhasesComplete(phases: Phase[]): boolean;
+  clearDeclaredWorkflowCompletions(): boolean;
   handleSkillFileRead(path: string): boolean;
   resetState(): void;
 }
@@ -264,6 +267,7 @@ export function createWorkflowHandler(): WorkflowHandler {
           phases: { ...defaultWorkflow.phases, ...snapshot.workflow.phases },
           artifacts: { ...defaultWorkflow.artifacts, ...snapshot.workflow.artifacts },
           prompted: { ...defaultWorkflow.prompted, ...snapshot.workflow.prompted },
+          declaredCompletePhases: snapshot.workflow.declaredCompletePhases ?? defaultWorkflow.declaredCompletePhases,
         });
       }
       if (snapshot.tdd) {
@@ -304,6 +308,14 @@ export function createWorkflowHandler(): WorkflowHandler {
 
     completeWorkflowPhase(phase) {
       return tracker.completePhase(phase);
+    },
+
+    declareWorkflowPhasesComplete(phases) {
+      return tracker.declareCompleteMany(phases);
+    },
+
+    clearDeclaredWorkflowCompletions() {
+      return tracker.clearDeclaredCompletePhases();
     },
 
     handleSkillFileRead(path: string) {

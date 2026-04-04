@@ -15,6 +15,7 @@ import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-age
 import { Text } from "@mariozechner/pi-tui";
 import { Type } from "@sinclair/typebox";
 import { log } from "./logging.js";
+import { normalizeSessionTransition } from "./shared/session-transition";
 import { getCurrentGitRef } from "./workflow-monitor/git";
 import { loadReference, REFERENCE_TOPICS } from "./workflow-monitor/reference-tool";
 import { getUnresolvedPhases, getUnresolvedPhasesBefore } from "./workflow-monitor/skip-confirmation";
@@ -27,6 +28,13 @@ import {
   getVerificationViolationWarning,
 } from "./workflow-monitor/warnings";
 import { createWorkflowHandler, type Violation, type WorkflowHandler } from "./workflow-monitor/workflow-handler";
+import {
+  buildWorkflowNextPrefill,
+  getWorkflowNextArgumentCompletions,
+  getWorkflowNextFallbackPrompt,
+  getWorkflowNextUsage,
+  parseWorkflowNextArgs,
+} from "./workflow-monitor/workflow-next";
 import {
   computeBoundaryToPrompt,
   type Phase,
@@ -53,6 +61,37 @@ async function selectValue<T extends string>(
 }
 
 const SUPERPOWERS_STATE_ENTRY_TYPE = "superpowers_state";
+
+function createEmptyWorkflowState(): WorkflowTrackerState {
+  return {
+    phases: {
+      brainstorm: "pending",
+      plan: "pending",
+      execute: "pending",
+      verify: "pending",
+      review: "pending",
+      finish: "pending",
+    },
+    currentPhase: null,
+    artifacts: {
+      brainstorm: null,
+      plan: null,
+      execute: null,
+      verify: null,
+      review: null,
+      finish: null,
+    },
+    prompted: {
+      brainstorm: false,
+      plan: false,
+      execute: false,
+      verify: false,
+      review: false,
+      finish: false,
+    },
+    declaredCompletePhases: [],
+  };
+}
 
 export function getStateFilePath(): string {
   return path.join(process.cwd(), ".pi", "superpowers-state.json");
@@ -194,10 +233,18 @@ export default function (pi: ExtensionAPI) {
     review_complete: "review",
   };
 
-  // --- State reconstruction on session events ---
-  for (const event of ["session_start", "session_switch", "session_fork", "session_tree"] as const) {
-    pi.on(event, async (_event, ctx) => {
+  const handleSessionTransition = (
+    event: { type: string; reason?: string; previousSessionFile?: string },
+    ctx: ExtensionContext,
+  ) => {
+    const transition = normalizeSessionTransition(event);
+    if (!transition) return;
+
+    if (transition.shouldReconstructState) {
       reconstructState(ctx, handler);
+    }
+
+    if (transition.shouldClearEphemeralState) {
       pendingViolations.clear();
       pendingVerificationViolations.clear();
       pendingBranchGates.clear();
@@ -206,9 +253,20 @@ export default function (pi: ExtensionAPI) {
       strikes.practice = 0;
       delete sessionAllowed.process;
       delete sessionAllowed.practice;
+    }
+
+    if (transition.shouldResetBranchSafety) {
       branchNoticeShown = false;
       branchConfirmed = false;
-      updateWidget(ctx);
+    }
+
+    updateWidget(ctx);
+  };
+
+  // --- State reconstruction on session events ---
+  for (const event of ["session_start", "session_switch", "session_fork", "session_tree"] as const) {
+    pi.on(event, async (sessionEvent, ctx) => {
+      handleSessionTransition(sessionEvent, ctx);
     });
   }
 
@@ -782,42 +840,46 @@ export default function (pi: ExtensionAPI) {
 
   pi.registerCommand("workflow-next", {
     description: "Start a fresh session for the next workflow phase (optionally referencing an artifact path)",
+    getArgumentCompletions: getWorkflowNextArgumentCompletions,
     async handler(args, ctx) {
       if (!ctx.hasUI) {
         ctx.ui.notify("workflow-next requires interactive mode", "error");
         return;
       }
 
-      const [phase, artifact] = args.trim().split(/\s+/, 2);
-      const validPhases = new Set(["brainstorm", "plan", "execute", "verify", "review", "finish"]);
-      if (!phase || !validPhases.has(phase)) {
-        ctx.ui.notify(
-          "Usage: /workflow-next <phase> [artifact-path]  (phase: brainstorm|plan|execute|verify|review|finish)",
-          "error",
-        );
+      const parsed = parseWorkflowNextArgs(args);
+      if (!parsed) {
+        ctx.ui.notify(getWorkflowNextUsage(), "error");
         return;
+      }
+
+      const fallbackPrompt = getWorkflowNextFallbackPrompt(
+        parsed.targetPhase,
+        handler.getWorkflowState() ?? createEmptyWorkflowState(),
+        parsed.donePhases,
+      );
+
+      let donePhases = parsed.donePhases;
+      if (fallbackPrompt) {
+        const choice = await selectValue(ctx, fallbackPrompt.title, fallbackPrompt.options);
+        if (choice === "cancel") {
+          return;
+        }
+
+        if (choice === "declare_and_continue") {
+          donePhases = [...donePhases, ...fallbackPrompt.phasesToDeclare];
+        }
       }
 
       const parentSession = ctx.sessionManager.getSessionFile();
       const res = await ctx.newSession({ parentSession });
       if (res.cancelled) return;
 
-      const lines: string[] = [];
-      if (artifact) lines.push(`Continue from artifact: ${artifact}`);
-
-      if (phase === "plan") {
-        lines.push("Use /skill:writing-plans to create the implementation plan.");
-      } else if (phase === "execute") {
-        lines.push("Use /skill:executing-plans (or /skill:subagent-driven-development) to execute the plan.");
-      } else if (phase === "verify") {
-        lines.push("Use /skill:verification-before-completion to verify before finishing.");
-      } else if (phase === "review") {
-        lines.push("Use /skill:requesting-code-review to get review.");
-      } else if (phase === "finish") {
-        lines.push("Use /skill:finishing-a-development-branch to integrate/ship.");
+      if (donePhases.length > 0 && handler.declareWorkflowPhasesComplete(donePhases)) {
+        persistState();
       }
 
-      ctx.ui.setEditorText(lines.join("\n"));
+      ctx.ui.setEditorText(buildWorkflowNextPrefill(parsed.targetPhase, parsed.artifactPath));
       ctx.ui.notify("New session ready. Submit when ready.", "info");
     },
   });

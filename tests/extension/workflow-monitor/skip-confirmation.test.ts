@@ -26,6 +26,7 @@ function createState(overrides: Partial<Record<Phase, PhaseStatus>>): WorkflowTr
     currentPhase: null,
     artifacts,
     prompted,
+    declaredCompletePhases: [],
   };
 }
 
@@ -119,5 +120,17 @@ describe("skip-confirmation helpers", () => {
 
     // review is "active" (engaged), so only finish (pending) is unresolved
     expect(getUnresolvedPhases(["review", "finish", "plan"], state)).toEqual(["finish"]);
+  });
+
+  test("declared complete phases are not treated as unresolved", () => {
+    const state = createState({
+      brainstorm: "pending",
+      plan: "pending",
+      execute: "pending",
+    });
+
+    state.declaredCompletePhases = ["brainstorm", "plan"];
+
+    expect(getUnresolvedPhasesBefore("execute", state)).toEqual([]);
   });
 });
