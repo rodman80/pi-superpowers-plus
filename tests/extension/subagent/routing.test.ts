@@ -89,4 +89,36 @@ describe("subagent routing", () => {
 
     expect(runSubprocessAgentMock).toHaveBeenCalledTimes(1);
   });
+
+  test("persists workstream transitions before and after implementer runtime failures", async () => {
+    let tool: any;
+    const appendEntry = vi.fn();
+    subagentExtension({
+      registerTool: (value: unknown) => {
+        tool = value;
+      },
+      on: vi.fn(),
+      registerCommand: vi.fn(),
+      appendEntry,
+    } as any);
+
+    implementerRunMock.mockRejectedValueOnce(new Error("SDK prompt failed"));
+
+    const result = await tool.execute(
+      "id",
+      { agent: "implementer", task: "Implement feature", taskKey: "task-2" },
+      undefined,
+      undefined,
+      {
+        cwd: process.cwd(),
+        hasUI: false,
+      },
+    );
+
+    expect(result.isError).toBe(true);
+    expect(appendEntry).toHaveBeenCalledTimes(2);
+    expect(appendEntry.mock.calls[0][1].activeWorkstreams).toHaveLength(1);
+    expect(appendEntry.mock.calls[0][1].activeWorkstreams[0].taskKey).toBe("task-2");
+    expect(appendEntry.mock.calls[1][1].activeWorkstreams).toEqual([]);
+  });
 });

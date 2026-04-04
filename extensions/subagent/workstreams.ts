@@ -38,8 +38,20 @@ export class ImplementerWorkstreamRegistry {
 
     for (const item of active) {
       if (item.cwd !== input.cwd) continue;
-      if (item.workstreamId === existing?.workstreamId && input.mode === "rotate") continue;
-      if (item.taskKey !== input.taskKey) this.complete(item.workstreamId);
+      if (item.taskKey !== input.taskKey) {
+        this.complete(item.workstreamId);
+        continue;
+      }
+      if (item.workstreamId !== existing?.workstreamId) {
+        this.complete(item.workstreamId);
+        continue;
+      }
+      if (input.mode === "rotate") {
+        continue;
+      }
+      if (input.mode === "fresh") {
+        this.complete(item.workstreamId);
+      }
     }
 
     if (input.mode === "rotate" && existing) {

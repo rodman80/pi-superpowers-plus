@@ -573,12 +573,51 @@ export default function (pi: ExtensionAPI) {
             }
           }
 
-          const result = await implementerRuntime.run({ record, agent, task: params.task });
-          if (result.sessionFile) {
-            workstreams.setSessionFile(record.workstreamId, result.sessionFile);
-          }
           persistWorkstreams(pi.appendEntry.bind(pi), workstreams);
           updateImplementerStatus(ctx, workstreams);
+
+          let result: SingleResult;
+          try {
+            result = await implementerRuntime.run({ record, agent, task: params.task });
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            workstreams.fail(record.workstreamId, errorMessage);
+            implementerRuntime.dispose(record.workstreamId);
+            persistWorkstreams(pi.appendEntry.bind(pi), workstreams);
+            updateImplementerStatus(ctx, workstreams);
+
+            const failedResult: SingleResult = {
+              agent: agent.name,
+              agentSource: agent.source,
+              task: params.task,
+              exitCode: 1,
+              messages: [],
+              stderr: errorMessage,
+              errorMessage,
+              usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0, contextTokens: 0, turns: 0 },
+            };
+
+            return {
+              content: [{ type: "text", text: `Agent failed: ${errorMessage}` }],
+              details: {
+                ...makeDetails("single")([failedResult]),
+                status: "failed" as const,
+                agent: failedResult.agent,
+                task: failedResult.task,
+                result: "",
+                filesChanged: [],
+                testsRan: false,
+                implementerStatus: undefined,
+                tddViolations: 0,
+              },
+              isError: true,
+            };
+          }
+
+          if (result.sessionFile) {
+            workstreams.setSessionFile(record.workstreamId, result.sessionFile);
+            persistWorkstreams(pi.appendEntry.bind(pi), workstreams);
+          }
 
           const summary = collectSummary(result.messages);
           const stableDetails = {

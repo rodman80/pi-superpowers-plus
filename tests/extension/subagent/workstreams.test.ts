@@ -27,6 +27,18 @@ describe("ImplementerWorkstreamRegistry", () => {
     expect(registry.get(first.workstreamId)?.rotationReason).toBe("scope drift");
   });
 
+  test("fresh mode replaces the active workstream for the same task", () => {
+    const registry = new ImplementerWorkstreamRegistry();
+    const first = registry.acquire({ taskKey: "task-2", cwd: "/repo", mode: "auto" });
+    const second = registry.acquire({ taskKey: "task-2", cwd: "/repo", mode: "fresh" });
+    const reused = registry.acquire({ taskKey: "task-2", cwd: "/repo", mode: "auto" });
+
+    expect(second.workstreamId).not.toBe(first.workstreamId);
+    expect(registry.get(first.workstreamId)?.status).toBe("completed");
+    expect(registry.listActive().map((item) => item.workstreamId)).toEqual([second.workstreamId]);
+    expect(reused.workstreamId).toBe(second.workstreamId);
+  });
+
   test("completes workstream and prevents future reuse", () => {
     const registry = new ImplementerWorkstreamRegistry();
     const first = registry.acquire({ taskKey: "task-2", cwd: "/repo", mode: "auto" });
