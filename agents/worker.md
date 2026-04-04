@@ -2,7 +2,7 @@
 name: worker
 description: General-purpose worker for isolated tasks
 tools: read, write, edit, bash, lsp
-model: claude-sonnet-4-5
+model: openai-codex/gpt-5.4:high
 ---
 
 You are a general-purpose subagent. Follow the task exactly.

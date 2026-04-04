@@ -16,16 +16,34 @@ import type { AgentConfig } from "./agents.js";
 import type { SingleResult, UsageStats } from "./runtime-types.js";
 import type { ImplementerWorkstreamRecord } from "./workstreams.js";
 
+type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+
+const THINKING_LEVELS = new Set<ThinkingLevel>(["off", "minimal", "low", "medium", "high", "xhigh"]);
+
 function getImplementerSessionDir(cwd: string): string {
   const cwdHash = createHash("sha1").update(cwd).digest("hex");
   return join(getAgentDir(), "sessions", "subagents", cwdHash);
 }
 
+function parseAgentModelSpec(modelSpec?: string): { modelRef?: string; thinkingLevel?: ThinkingLevel } {
+  if (!modelSpec) return {};
+
+  const lastColonIndex = modelSpec.lastIndexOf(":");
+  if (lastColonIndex === -1) return { modelRef: modelSpec };
+
+  const suffix = modelSpec.slice(lastColonIndex + 1) as ThinkingLevel;
+  if (!THINKING_LEVELS.has(suffix)) return { modelRef: modelSpec };
+
+  return {
+    modelRef: modelSpec.slice(0, lastColonIndex),
+    thinkingLevel: suffix,
+  };
+}
+
 function resolveModel(agent: AgentConfig, modelRegistry: ModelRegistry): Model<Api> | undefined {
-  if (!agent.model) return undefined;
-  return modelRegistry
-    .getAll()
-    .find((model) => model.id === agent.model || `${model.provider}/${model.id}` === agent.model);
+  const { modelRef } = parseAgentModelSpec(agent.model);
+  if (!modelRef) return undefined;
+  return modelRegistry.getAll().find((model) => model.id === modelRef || `${model.provider}/${model.id}` === modelRef);
 }
 
 function collectUsage(messages: SingleResult["messages"]): { usage: UsageStats; model?: string } {
@@ -101,6 +119,7 @@ export class ImplementerRuntime {
         ? SessionManager.open(record.sessionFile, sessionDir)
         : SessionManager.create(record.cwd, sessionDir);
 
+    const { thinkingLevel } = parseAgentModelSpec(agent.model);
     const { session } = await createAgentSession({
       cwd: record.cwd,
       authStorage,
@@ -109,6 +128,7 @@ export class ImplementerRuntime {
       sessionManager,
       settingsManager,
       model: resolveModel(agent, modelRegistry),
+      thinkingLevel,
     });
 
     if (agent.tools?.length) {

@@ -2,7 +2,7 @@
 name: code-reviewer
 description: "Production readiness review: quality, security, testing (read-only)"
 tools: read, bash, find, grep, ls
-model: claude-sonnet-4-5
+model: openai-codex/gpt-5.4:xhigh
 ---
 
 You are a code quality reviewer.

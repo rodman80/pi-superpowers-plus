@@ -2,7 +2,7 @@
 name: implementer
 description: Implement tasks via TDD and commit small changes
 tools: read, write, edit, bash, lsp
-model: claude-sonnet-4-5
+model: openai-codex/gpt-5.4:high
 ---
 
 You are an implementation subagent.
