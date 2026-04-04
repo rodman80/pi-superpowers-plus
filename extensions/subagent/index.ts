@@ -14,6 +14,7 @@
  */
 
 import * as os from "node:os";
+import * as path from "node:path";
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 import type { Message } from "@mariozechner/pi-ai";
 import { StringEnum } from "@mariozechner/pi-ai";
@@ -203,6 +204,10 @@ function updateImplementerStatus(
     return;
   }
   ctx.ui.setStatus("subagent", `Implementer: ${active.taskKey} active`);
+}
+
+function resolveAgentCwd(defaultCwd: string, cwd: string | undefined): string {
+  return cwd ? path.resolve(defaultCwd, cwd) : path.resolve(defaultCwd);
 }
 
 async function runSingleAgent(
@@ -549,13 +554,15 @@ export default function (pi: ExtensionAPI) {
           }
 
           const taskKey = params.taskKey;
+          const resolvedImplementerCwd = resolveAgentCwd(ctx.cwd, params.cwd);
           if (!taskKey) {
-            const adHoc = workstreams.create(`adhoc-${Date.now()}`, params.cwd ?? ctx.cwd);
+            const adHoc = workstreams.create(`adhoc-${Date.now()}`, resolvedImplementerCwd);
             let result: SingleResult;
             try {
               result = await implementerRuntime.run({ record: adHoc, agent, task: params.task });
             } catch (error) {
               const errorMessage = error instanceof Error ? error.message : String(error);
+              workstreams.complete(adHoc.workstreamId);
               implementerRuntime.dispose(adHoc.workstreamId);
               const failedResult: SingleResult = {
                 agent: agent.name,
@@ -595,7 +602,7 @@ export default function (pi: ExtensionAPI) {
           const activeBefore = new Set(workstreams.listActive().map((item) => item.workstreamId));
           const record = workstreams.acquire({
             taskKey,
-            cwd: params.cwd ?? ctx.cwd,
+            cwd: resolvedImplementerCwd,
             mode: params.workstreamMode ?? "auto",
             rotationReason: params.rotationReason,
           });
