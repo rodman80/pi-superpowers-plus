@@ -1,0 +1,98 @@
+import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import type { Api } from "@mariozechner/pi-ai";
+import type { AgentSession, Model } from "@mariozechner/pi-coding-agent";
+import {
+  AuthStorage,
+  createAgentSession,
+  DefaultResourceLoader,
+  getAgentDir,
+  ModelRegistry,
+  SessionManager,
+  SettingsManager,
+} from "@mariozechner/pi-coding-agent";
+import type { AgentConfig } from "./agents.js";
+import type { SingleResult } from "./runtime-types.js";
+import type { ImplementerWorkstreamRecord } from "./workstreams.js";
+
+function getImplementerSessionDir(cwd: string): string {
+  const cwdHash = createHash("sha1").update(cwd).digest("hex");
+  return join(getAgentDir(), "sessions", "subagents", cwdHash);
+}
+
+function resolveModel(agent: AgentConfig, modelRegistry: ModelRegistry): Model<Api> | undefined {
+  if (!agent.model) return undefined;
+  return modelRegistry
+    .getAll()
+    .find((model) => model.id === agent.model || `${model.provider}/${model.id}` === agent.model);
+}
+
+export class ImplementerRuntime {
+  private sessions = new Map<string, AgentSession>();
+
+  private async getOrCreateSession(record: ImplementerWorkstreamRecord, agent: AgentConfig): Promise<AgentSession> {
+    const existing = this.sessions.get(record.workstreamId);
+    if (existing) return existing;
+
+    const authStorage = AuthStorage.create();
+    const modelRegistry = ModelRegistry.create(authStorage);
+    const settingsManager = SettingsManager.inMemory();
+    const resourceLoader = new DefaultResourceLoader({
+      cwd: record.cwd,
+      settingsManager,
+      systemPromptOverride: (base) => [base, agent.systemPrompt].filter(Boolean).join("\n\n"),
+    });
+    await resourceLoader.reload();
+
+    const sessionDir = getImplementerSessionDir(record.cwd);
+    const sessionManager =
+      record.sessionFile && existsSync(record.sessionFile)
+        ? SessionManager.open(record.sessionFile, sessionDir)
+        : SessionManager.create(record.cwd, sessionDir);
+
+    const { session } = await createAgentSession({
+      cwd: record.cwd,
+      authStorage,
+      modelRegistry,
+      resourceLoader,
+      sessionManager,
+      settingsManager,
+      model: resolveModel(agent, modelRegistry),
+    });
+
+    if (agent.tools?.length) {
+      session.setActiveToolsByName(agent.tools);
+    }
+
+    this.sessions.set(record.workstreamId, session);
+    return session;
+  }
+
+  async run(input: { record: ImplementerWorkstreamRecord; agent: AgentConfig; task: string }): Promise<SingleResult> {
+    const session = await this.getOrCreateSession(input.record, input.agent);
+    const startIndex = session.messages.length;
+    await session.prompt(`Task: ${input.task}`);
+
+    const deltaMessages = session.messages.slice(startIndex).filter((message) => message.role !== "user");
+
+    return {
+      agent: input.agent.name,
+      agentSource: input.agent.source,
+      task: input.task,
+      exitCode: 0,
+      messages: deltaMessages as SingleResult["messages"],
+      stderr: "",
+      usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0, contextTokens: 0, turns: 0 },
+      sessionFile: session.sessionFile,
+    };
+  }
+
+  dispose(workstreamId: string): void {
+    this.sessions.delete(workstreamId);
+  }
+
+  disposeAll(): void {
+    this.sessions.clear();
+  }
+}
