@@ -2,7 +2,7 @@
 name: quality-spec-reviewer
 description: "Combined spec compliance and code quality reviewer (read-only)"
 tools: read, bash, find, grep, ls
-model: openai-codex/gpt-5.4:xhigh
+model: openai-codex/gpt-5.4:high
 ---
 
 You are a combined spec compliance and code quality reviewer.

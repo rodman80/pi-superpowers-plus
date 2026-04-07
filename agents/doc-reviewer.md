@@ -2,7 +2,7 @@
 name: doc-reviewer
 description: Review specs and plans for completeness, scope, and clarity (read-only)
 tools: read, bash, find, grep, ls
-model: openai-codex/gpt-5.4:xhigh
+model: openai-codex/gpt-5.4:high
 ---
 
 You are a document reviewer.
