@@ -19,7 +19,7 @@
 import { vi } from "vitest";
 import type { Logger } from "../../extensions/logging.js";
 
-export interface MockLogger extends Logger {
+interface MockLogger extends Logger {
   info: ReturnType<typeof vi.fn>;
   warn: ReturnType<typeof vi.fn>;
   error: ReturnType<typeof vi.fn>;

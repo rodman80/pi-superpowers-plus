@@ -66,10 +66,6 @@ export function getSingleHandler(handlers: Map<string, Handler[]>, event: string
   return list[0]!;
 }
 
-export function getHandlers(handlers: Map<string, Handler[]>, event: string): Handler[] {
-  return handlers.get(event) ?? [];
-}
-
 export function emitSessionStart(reason: SessionStartReason, previousSessionFile?: string) {
   return {
     type: "session_start",

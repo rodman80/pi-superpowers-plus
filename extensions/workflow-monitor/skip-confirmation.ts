@@ -4,7 +4,7 @@ export function isPhaseUnresolved(status: PhaseStatus): boolean {
   return status === "pending";
 }
 
-export function isPhaseResolved(phase: Phase, state: WorkflowTrackerState): boolean {
+function isPhaseResolved(phase: Phase, state: WorkflowTrackerState): boolean {
   return state.declaredCompletePhases.includes(phase) || !isPhaseUnresolved(state.phases[phase]);
 }
 

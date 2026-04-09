@@ -9,7 +9,7 @@
 import { StringEnum } from "@mariozechner/pi-ai";
 import type { ExtensionAPI, ExtensionContext, Theme } from "@mariozechner/pi-coding-agent";
 import { Text } from "@mariozechner/pi-tui";
-import { type Static, Type } from "@sinclair/typebox";
+import { Type } from "@sinclair/typebox";
 import { normalizeSessionTransition } from "./shared/session-transition";
 
 type TaskStatus = "pending" | "in_progress" | "complete";
@@ -46,8 +46,6 @@ const PlanTrackerParams = Type.Object({
     }),
   ),
 });
-
-export type PlanTrackerInput = Static<typeof PlanTrackerParams>;
 
 function formatWidget(tasks: Task[], theme: Theme): string {
   if (tasks.length === 0) return "";

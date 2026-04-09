@@ -13,7 +13,7 @@ import { getSubagentTimeoutMs } from "./timeout.js";
 
 export const INACTIVITY_TIMEOUT_MS = 480_000;
 
-export interface RunSubprocessAgentArgs {
+interface RunSubprocessAgentArgs {
   defaultCwd: string;
   agent: AgentConfig;
   task: string;

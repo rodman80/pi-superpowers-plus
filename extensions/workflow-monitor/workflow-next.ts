@@ -5,13 +5,13 @@ import { type Phase, WORKFLOW_PHASES, type WorkflowTrackerState } from "./workfl
 const USAGE =
   "Usage: /workflow-next <phase> [--done <phase> ...] [artifact-path]  (phase: brainstorm|plan|execute|verify|review|finish)";
 
-export interface WorkflowNextParseResult {
+interface WorkflowNextParseResult {
   targetPhase: Phase;
   artifactPath?: string;
   donePhases: Phase[];
 }
 
-export interface WorkflowNextFallbackPrompt {
+interface WorkflowNextFallbackPrompt {
   title: string;
   options: Array<{ label: string; value: "declare_and_continue" | "continue_without_declaring" | "cancel" }>;
   phasesToDeclare: Phase[];

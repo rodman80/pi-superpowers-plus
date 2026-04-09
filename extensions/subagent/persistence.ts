@@ -3,7 +3,7 @@ import { type ImplementerWorkstreamRecord, ImplementerWorkstreamRegistry } from 
 
 export const WORKSTREAM_ENTRY_TYPE = "subagent_workstreams";
 
-export interface PersistedImplementerState {
+interface PersistedImplementerState {
   activeWorkstreams: ImplementerWorkstreamRecord[];
 }
 

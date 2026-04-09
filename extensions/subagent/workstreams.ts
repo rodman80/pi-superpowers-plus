@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-export type WorkstreamMode = "auto" | "fresh" | "rotate";
+type WorkstreamMode = "auto" | "fresh" | "rotate";
 export type ImplementerWorkstreamStatus = "active" | "completed" | "rotated" | "failed";
 
 export interface ImplementerWorkstreamRecord {

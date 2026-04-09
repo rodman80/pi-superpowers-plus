@@ -1,8 +1,8 @@
 import type { Phase, TransitionBoundary } from "./workflow-tracker";
 
-export type TransitionChoice = "next" | "fresh" | "skip" | "discuss";
+type TransitionChoice = "next" | "fresh" | "skip" | "discuss";
 
-export interface TransitionPrompt {
+interface TransitionPrompt {
   boundary: TransitionBoundary;
   title: string;
   nextPhase: Phase;

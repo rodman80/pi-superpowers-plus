@@ -1,4 +1,4 @@
-export type TddViolationType = "source-before-test" | "source-during-red";
+type TddViolationType = "source-before-test" | "source-during-red";
 
 export function getTddViolationWarning(type: TddViolationType, file: string, _phase?: string): string {
   if (type === "source-before-test") {
@@ -14,7 +14,7 @@ export function getTddViolationWarning(type: TddViolationType, file: string, _ph
 
 export type DebugViolationType = "fix-without-investigation" | "excessive-fix-attempts";
 
-export type VerificationViolationType =
+type VerificationViolationType =
   | "commit-without-verification"
   | "push-without-verification"
   | "pr-without-verification";

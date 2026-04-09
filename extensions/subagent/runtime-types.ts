@@ -26,7 +26,7 @@ export interface SingleResult {
   sessionFile?: string;
 }
 
-export type ImplementerStatus = "DONE" | "DONE_WITH_CONCERNS" | "BLOCKED" | "NEEDS_CONTEXT";
+type ImplementerStatus = "DONE" | "DONE_WITH_CONCERNS" | "BLOCKED" | "NEEDS_CONTEXT";
 
 function isTestCommand(cmd: string): boolean {
   return (
