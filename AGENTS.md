@@ -13,6 +13,7 @@
 
 - `npm run lint` (`biome check .`)
 - `npm run test` (`vitest run`)
+- `npm test` (equivalente a `npm run test`)
 - `npm run check` (`biome check . && vitest run`)
 - `npx biome check .`
 - `npx vitest run`
