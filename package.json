@@ -44,7 +44,7 @@
     "@mariozechner/pi-ai": "0.65.0",
     "@mariozechner/pi-coding-agent": "0.65.0",
     "@mariozechner/pi-tui": "0.65.0",
-    "@biomejs/biome": "^2.3.15",
-    "vitest": "^4.0.18"
+    "@biomejs/biome": "^2.4.10",
+    "vitest": "^4.1.2"
   }
 }
