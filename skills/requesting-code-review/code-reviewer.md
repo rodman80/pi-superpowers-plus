@@ -89,34 +89,11 @@ git diff {BASE_SHA}..{HEAD_SHA}
 - Why it matters
 - How to fix (if not obvious)
 
-### Recommendations
-[Improvements for code quality, architecture, or process]
+### Verdict
+[Ready to merge? Yes/No/With fixes plus 1-2 sentences of reasoning]
 
-### Assessment
-
-**Ready to merge?** [Yes/No/With fixes]
-
-**Reasoning:** [Technical assessment in 1-2 sentences]
-
-## Review Summary
-
-**REQUIRED:** End every review with this structured summary for orchestrator consumption.
-
-```markdown
-## Review Summary
-
-**Files changed:** [`path/to/file1.ts`, `path/to/file2.ts`]
-
-**What was implemented:** [2-3 sentences describing the main implementation]
-
-**Dependencies affected:** [list of imports/exports that changed, or "none"]
-
-**Flags for orchestrator:** [list of flags requiring orchestrator attention, or "none"]
-- Examples: "Modified shared utility", "Changed internal API signature", "Touched hot path", "New dependency added"
-- A module is considered "shared" if imported by 2+ other files
-
-**Verdict:** ✅ Approved / ❌ Needs fixes
-```
+### Flags For Orchestrator
+[List shared-module or cross-task concerns, or "none"]
 
 ## Critical Rules
 
