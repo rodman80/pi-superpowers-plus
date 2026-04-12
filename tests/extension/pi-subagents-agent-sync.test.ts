@@ -57,6 +57,21 @@ describe("pi-subagents managed agent sync", () => {
     expect(fs.existsSync(legacyAgentPath("spx-implementer.md"))).toBe(false);
   });
 
+  test("preserves unmanaged legacy spx agents when the modern user dir exists", () => {
+    fs.mkdirSync(path.dirname(legacyAgentPath("spx-implementer.md")), { recursive: true });
+    fs.mkdirSync(path.dirname(modernAgentPath("spx-implementer.md")), { recursive: true });
+    fs.writeFileSync(
+      legacyAgentPath("spx-implementer.md"),
+      "---\nname: spx-implementer\ndescription: Legacy custom implementer\n---\ncustom",
+      "utf-8",
+    );
+
+    __internal.syncManagedAgents();
+
+    expect(fs.readFileSync(legacyAgentPath("spx-implementer.md"), "utf-8")).toContain("Legacy custom implementer");
+    expect(fs.existsSync(modernAgentPath("spx-implementer.md"))).toBe(false);
+  });
+
   test("overwrites managed spx agent files but preserves unmanaged files in discovered directories", () => {
     fs.mkdirSync(path.dirname(legacyAgentPath("spx-implementer.md")), { recursive: true });
     fs.writeFileSync(

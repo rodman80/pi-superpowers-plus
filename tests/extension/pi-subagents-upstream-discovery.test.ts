@@ -44,4 +44,34 @@ describe("pi-subagents upstream discovery", () => {
     expect(implementer?.description).toBe("Implement tasks via TDD and commit small changes");
     expect(worker?.source).toBe("user");
   });
+
+  test("preserves legacy unmanaged spx customizations when the modern user dir exists", () => {
+    const legacyAgentPath = path.join(tempHome, ".pi", "agent", "agents", "spx-implementer.md");
+    const modernAgentsDir = path.join(tempHome, ".agents");
+
+    fs.mkdirSync(path.dirname(legacyAgentPath), { recursive: true });
+    fs.mkdirSync(modernAgentsDir, { recursive: true });
+    fs.writeFileSync(
+      legacyAgentPath,
+      [
+        "---",
+        "name: spx-implementer",
+        "description: Legacy custom implementer",
+        "tools: read",
+        "model: openai-codex/gpt-5.4:high",
+        "---",
+        "Custom legacy body",
+      ].join("\n"),
+      "utf-8",
+    );
+
+    syncInternal.syncManagedAgents();
+
+    const result = discoverAgents(process.cwd(), "both");
+    const implementer = result.agents.find((agent) => agent.name === "spx-implementer");
+
+    expect(fs.existsSync(path.join(modernAgentsDir, "spx-implementer.md"))).toBe(false);
+    expect(implementer?.filePath).toBe(legacyAgentPath);
+    expect(implementer?.description).toBe("Legacy custom implementer");
+  });
 });
