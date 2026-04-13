@@ -6,10 +6,13 @@ import { __internal as syncInternal } from "../../extensions/pi-subagents-agent-
 import { discoverAgents } from "pi-subagents/agents.ts";
 
 let tempHome: string;
+let workspaceCwd: string;
 let previousAgentDir: string | undefined;
 
 beforeEach(() => {
   tempHome = fs.mkdtempSync(path.join(os.tmpdir(), "pi-subagents-home-"));
+  workspaceCwd = path.join(tempHome, "workspace");
+  fs.mkdirSync(workspaceCwd, { recursive: true });
   previousAgentDir = process.env.PI_CODING_AGENT_DIR;
   delete process.env.PI_CODING_AGENT_DIR;
   vi.stubEnv("HOME", tempHome);
@@ -35,7 +38,7 @@ describe("pi-subagents upstream discovery", () => {
     expect(fs.existsSync(legacyAgentPath)).toBe(true);
     expect(fs.existsSync(path.join(tempHome, ".agents", "spx-implementer.md"))).toBe(false);
 
-    const result = discoverAgents(process.cwd(), "both");
+    const result = discoverAgents(workspaceCwd, "both");
     const implementer = result.agents.find((agent) => agent.name === "spx-implementer");
     const worker = result.agents.find((agent) => agent.name === "spx-worker");
 
@@ -66,7 +69,7 @@ describe("pi-subagents upstream discovery", () => {
 
     syncInternal.syncManagedAgents();
 
-    const result = discoverAgents(process.cwd(), "both");
+    const result = discoverAgents(workspaceCwd, "both");
     const implementer = result.agents.find((agent) => agent.name === "spx-implementer");
 
     expect(fs.existsSync(path.join(modernAgentsDir, "spx-implementer.md"))).toBe(true);
