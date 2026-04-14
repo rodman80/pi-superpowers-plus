@@ -15,7 +15,6 @@
 
 import * as os from "node:os";
 import * as path from "node:path";
-import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 import type { Message } from "@mariozechner/pi-ai";
 import { StringEnum } from "@mariozechner/pi-ai";
 import { type ExtensionAPI, getMarkdownTheme } from "@mariozechner/pi-coding-agent";
@@ -141,6 +140,11 @@ interface SubagentDetails {
   results: SingleResult[];
 }
 
+interface ToolResultUpdate<TDetails> {
+  content: Array<{ type: string; [key: string]: unknown }>;
+  details?: TDetails;
+}
+
 function getFinalOutput(messages: Message[]): string {
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
@@ -155,6 +159,8 @@ function getFinalOutput(messages: Message[]): string {
 
 // biome-ignore lint/suspicious/noExplicitAny: pi SDK message content type
 type DisplayItem = { type: "text"; text: string } | { type: "toolCall"; name: string; args: Record<string, any> };
+
+type OnUpdateCallback = (partial: ToolResultUpdate<SubagentDetails>) => void;
 
 function getDisplayItems(messages: Message[]): DisplayItem[] {
   const items: DisplayItem[] = [];
@@ -190,8 +196,6 @@ async function mapWithConcurrencyLimit<TIn, TOut>(
   await Promise.all(workers);
   return results;
 }
-
-type OnUpdateCallback = (partial: AgentToolResult<SubagentDetails>) => void;
 
 function updateImplementerStatus(
   ctx: { hasUI?: boolean; ui?: { setStatus(id: string, text: string | undefined): void }; cwd?: string },
