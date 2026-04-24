@@ -35,8 +35,8 @@ Please focus on:
 Requirements: recent Node.js (LTS recommended)
 
 ```bash
-npm install
-npm test
+npm ci
+npm run check
 ```
 
 ## Pull request guidelines

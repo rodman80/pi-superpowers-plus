@@ -394,6 +394,8 @@ pi-superpowers-plus/
 ## Development
 
 ```bash
+npm ci                      # Install locked dependencies
+npm run check               # Run lint + tests
 npm test                    # Run all tests
 npx vitest run tests/extension/workflow-monitor/tdd-monitor.test.ts   # Run one file
 ```
