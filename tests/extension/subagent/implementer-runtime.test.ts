@@ -1,14 +1,24 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-const { createAgentSessionMock } = vi.hoisted(() => ({
-  createAgentSessionMock: vi.fn(),
-}));
+const { createAgentSessionMock, DefaultResourceLoaderMock, resourceLoaderReloadMock } = vi.hoisted(() => {
+  const resourceLoaderReloadMock = vi.fn(async () => {});
+  return {
+    createAgentSessionMock: vi.fn(),
+    DefaultResourceLoaderMock: vi.fn(
+      class {
+        reload = resourceLoaderReloadMock;
+      },
+    ),
+    resourceLoaderReloadMock,
+  };
+});
 
 vi.mock("@mariozechner/pi-coding-agent", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@mariozechner/pi-coding-agent")>();
   return {
     ...actual,
     createAgentSession: createAgentSessionMock,
+    DefaultResourceLoader: DefaultResourceLoaderMock,
   };
 });
 
@@ -17,6 +27,7 @@ import { ImplementerRuntime } from "../../../extensions/subagent/implementer-run
 describe("ImplementerRuntime", () => {
   beforeEach(() => {
     createAgentSessionMock.mockReset();
+    resourceLoaderReloadMock.mockClear();
   });
 
   test("reuses the same AgentSession for the same active workstream", async () => {

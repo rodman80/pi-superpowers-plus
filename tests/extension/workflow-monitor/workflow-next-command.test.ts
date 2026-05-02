@@ -1,6 +1,20 @@
 import { describe, expect, test } from "vitest";
 import workflowMonitorExtension from "../../../extensions/workflow-monitor";
 
+async function completeNewSession(
+  options: any,
+  replacementCtx: any,
+  appendedEntries?: Array<{ type: string; data: any }>,
+) {
+  await options?.setup?.({
+    appendCustomEntry(type: string, data: any) {
+      appendedEntries?.push({ type, data });
+    },
+  });
+  await options?.withSession?.(replacementCtx);
+  return { cancelled: false };
+}
+
 describe("/workflow-next", () => {
   test("accepts repeated --done flags before creating a new session", async () => {
     let command: any;
@@ -30,9 +44,9 @@ describe("/workflow-next", () => {
           throw new Error("select should not be called when --done is explicit");
         },
       },
-      newSession: async () => {
+      newSession: async (options: any) => {
         newSessionCalls += 1;
-        return { cancelled: false };
+        return completeNewSession(options, ctx, appendedEntries);
       },
     };
 
@@ -71,7 +85,7 @@ describe("/workflow-next", () => {
           throw new Error("select should not be called when --done is explicit");
         },
       },
-      newSession: async () => ({ cancelled: false }),
+      newSession: async (options: any) => completeNewSession(options, ctx, appendedEntries),
     };
 
     await command.handler("execute docs/plans/foo.md --done brainstorm --done plan", ctx);
@@ -147,9 +161,9 @@ describe("/workflow-next", () => {
           return "Mark earlier phases complete and continue";
         },
       },
-      newSession: async () => {
+      newSession: async (options: any) => {
         newSessionCalls += 1;
-        return { cancelled: false };
+        return completeNewSession(options, ctx, appendedEntries);
       },
     };
 
@@ -196,9 +210,9 @@ describe("/workflow-next", () => {
         setWidget: () => {},
         select: async () => "Continue without marking earlier phases complete",
       },
-      newSession: async () => {
+      newSession: async (options: any) => {
         newSessionCalls += 1;
-        return { cancelled: false };
+        return completeNewSession(options, ctx, appendedEntries);
       },
     };
 
@@ -231,13 +245,59 @@ describe("/workflow-next", () => {
         notify: () => {},
         select: async () => "Mark earlier phases complete and continue",
       },
-      newSession: async () => ({ cancelled: false }),
+      newSession: async (options: any) => completeNewSession(options, ctx),
     };
 
     await handler("plan docs/plans/2026-02-10-x-design.md", ctx);
 
     expect(calls[0][0]).toBe("setEditorText");
     expect(calls[0][1]).toMatch(/Continue from artifact: docs\/plans\/2026-02-10-x-design\.md/);
+  });
+
+  test("uses replacement session context for post-new-session UI work", async () => {
+    let handler: any;
+    const fakePi: any = {
+      on() {},
+      registerTool() {},
+      appendEntry() {},
+      registerCommand(_name: string, opts: any) {
+        handler = opts.handler;
+      },
+    };
+
+    workflowMonitorExtension(fakePi);
+
+    const replacementCalls: any[] = [];
+    const ctx: any = {
+      hasUI: true,
+      sessionManager: { getSessionFile: () => "/tmp/session.jsonl" },
+      ui: {
+        setEditorText: () => {
+          throw new Error("old command context should not receive post-session UI work");
+        },
+        notify: () => {
+          throw new Error("old command context should not receive post-session UI work");
+        },
+        select: async () => "Mark earlier phases complete and continue",
+      },
+      newSession: async (options: any) => {
+        await options.withSession({
+          ...ctx,
+          ui: {
+            ...ctx.ui,
+            setEditorText: (t: string) => replacementCalls.push(["setEditorText", t]),
+            notify: (message: string, level: string) => replacementCalls.push(["notify", message, level]),
+          },
+        });
+        return { cancelled: false };
+      },
+    };
+
+    await handler("plan docs/plans/2026-02-10-x-design.md", ctx);
+
+    expect(replacementCalls[0][0]).toBe("setEditorText");
+    expect(replacementCalls[0][1]).toMatch(/Continue from artifact: docs\/plans\/2026-02-10-x-design\.md/);
+    expect(replacementCalls[1]).toEqual(["notify", "New session ready. Submit when ready.", "info"]);
   });
 
   test("rejects invalid phase values", async () => {

@@ -13,7 +13,7 @@ import * as path from "node:path";
 import { StringEnum } from "@mariozechner/pi-ai";
 import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { Text } from "@mariozechner/pi-tui";
-import { Type } from "@sinclair/typebox";
+import { Type } from "typebox";
 import { log } from "./logging.js";
 import { normalizeSessionTransition } from "./shared/session-transition";
 import { getCurrentGitRef } from "./workflow-monitor/git";
@@ -184,9 +184,7 @@ export default function (pi: ExtensionAPI) {
   let branchNoticeShown = false;
   let branchConfirmed = false;
 
-  const persistState = () => {
-    pi.appendEntry(SUPERPOWERS_STATE_ENTRY_TYPE, handler.getFullState());
-    // Also persist to file for cross-session survival
+  const persistStateFile = () => {
     try {
       const statePath = getStateFilePath();
       fs.mkdirSync(path.dirname(statePath), { recursive: true });
@@ -194,6 +192,17 @@ export default function (pi: ExtensionAPI) {
     } catch (err) {
       log.warn(`Failed to persist state file: ${err instanceof Error ? err.message : err}`);
     }
+  };
+
+  const persistState = () => {
+    pi.appendEntry(SUPERPOWERS_STATE_ENTRY_TYPE, handler.getFullState());
+    // Also persist to file for cross-session survival
+    persistStateFile();
+  };
+
+  const persistStateToSession = (sessionManager: { appendCustomEntry(customType: string, data?: unknown): void }) => {
+    sessionManager.appendCustomEntry(SUPERPOWERS_STATE_ENTRY_TYPE, handler.getFullState());
+    persistStateFile();
   };
 
   const phaseToSkill: Record<string, string> = {
@@ -872,15 +881,20 @@ export default function (pi: ExtensionAPI) {
       }
 
       const parentSession = ctx.sessionManager.getSessionFile();
-      const res = await ctx.newSession({ parentSession });
+      const prefill = buildWorkflowNextPrefill(parsed.targetPhase, parsed.artifactPath);
+      const res = await ctx.newSession({
+        parentSession,
+        setup: async (sessionManager) => {
+          if (donePhases.length > 0 && handler.declareWorkflowPhasesComplete(donePhases)) {
+            persistStateToSession(sessionManager);
+          }
+        },
+        withSession: async (nextCtx) => {
+          nextCtx.ui.setEditorText(prefill);
+          nextCtx.ui.notify("New session ready. Submit when ready.", "info");
+        },
+      });
       if (res.cancelled) return;
-
-      if (donePhases.length > 0 && handler.declareWorkflowPhasesComplete(donePhases)) {
-        persistState();
-      }
-
-      ctx.ui.setEditorText(buildWorkflowNextPrefill(parsed.targetPhase, parsed.artifactPath));
-      ctx.ui.notify("New session ready. Submit when ready.", "info");
     },
   });
 
