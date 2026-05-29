@@ -10,10 +10,9 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { StringEnum } from "@mariozechner/pi-ai";
-import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
-import { Text } from "@mariozechner/pi-tui";
-import { Type } from "typebox";
+import { StringEnum, Type } from "@earendil-works/pi-ai";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { Text } from "@earendil-works/pi-tui";
 import { log } from "./logging.js";
 import { normalizeSessionTransition } from "./shared/session-transition";
 import { getCurrentGitRef } from "./workflow-monitor/git";

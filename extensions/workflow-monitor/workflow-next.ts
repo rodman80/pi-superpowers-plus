@@ -1,4 +1,4 @@
-import type { AutocompleteItem } from "@mariozechner/pi-tui";
+import type { AutocompleteItem } from "@earendil-works/pi-tui";
 import { getUnresolvedPhasesBefore } from "./skip-confirmation";
 import { type Phase, WORKFLOW_PHASES, type WorkflowTrackerState } from "./workflow-tracker";
 

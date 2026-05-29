@@ -1,4 +1,4 @@
-import type { SessionEntry } from "@mariozechner/pi-coding-agent";
+import type { SessionEntry } from "@earendil-works/pi-coding-agent";
 import { type ImplementerWorkstreamRecord, ImplementerWorkstreamRegistry } from "./workstreams.js";
 
 export const WORKSTREAM_ENTRY_TYPE = "subagent_workstreams";
