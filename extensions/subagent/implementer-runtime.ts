@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import type { Api } from "@mariozechner/pi-ai";
-import type { AgentSession, Model } from "@mariozechner/pi-coding-agent";
+import type { Api, Model } from "@earendil-works/pi-ai";
+import type { AgentSession } from "@earendil-works/pi-coding-agent";
 import {
   AuthStorage,
   createAgentSession,
@@ -11,7 +11,7 @@ import {
   ModelRegistry,
   SessionManager,
   SettingsManager,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import type { AgentConfig } from "./agents.js";
 import type { SingleResult, UsageStats } from "./runtime-types.js";
 import type { ImplementerWorkstreamRecord } from "./workstreams.js";
@@ -88,10 +88,12 @@ export class ImplementerRuntime {
     const authStorage = AuthStorage.create();
     const modelRegistry = ModelRegistry.create(authStorage);
     const settingsManager = SettingsManager.inMemory();
+    const agentDir = getAgentDir();
     const resourceLoader = new DefaultResourceLoader({
       cwd: record.cwd,
+      agentDir,
       settingsManager,
-      systemPromptOverride: (base) => [base, agent.systemPrompt].filter(Boolean).join("\n\n"),
+      appendSystemPromptOverride: (base) => (agent.systemPrompt.trim() ? [...base, agent.systemPrompt] : base),
     });
     await resourceLoader.reload();
 
@@ -137,8 +139,16 @@ export class ImplementerRuntime {
     input.signal?.addEventListener("abort", abortSession, { once: true });
     try {
       await session.prompt(`Task: ${input.task}`);
+    } catch (error) {
+      if (input.signal?.aborted) {
+        throw new Error("Implementer was aborted");
+      }
+      throw error;
     } finally {
       input.signal?.removeEventListener("abort", abortSession);
+    }
+    if (input.signal?.aborted) {
+      throw new Error("Implementer was aborted");
     }
 
     const deltaMessages = session.messages.slice(startIndex).filter((message) => message.role !== "user");

@@ -6,10 +6,9 @@
  * Shows a persistent TUI widget above the editor.
  */
 
-import { StringEnum } from "@mariozechner/pi-ai";
-import type { ExtensionAPI, ExtensionContext, Theme } from "@mariozechner/pi-coding-agent";
-import { Text } from "@mariozechner/pi-tui";
-import { Type } from "typebox";
+import { StringEnum, Type } from "@earendil-works/pi-ai";
+import type { ExtensionAPI, ExtensionContext, Theme } from "@earendil-works/pi-coding-agent";
+import { Text } from "@earendil-works/pi-tui";
 import { normalizeSessionTransition } from "./shared/session-transition";
 
 type TaskStatus = "pending" | "in_progress" | "complete";
