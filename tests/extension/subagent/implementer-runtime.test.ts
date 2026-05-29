@@ -27,6 +27,7 @@ import { ImplementerRuntime } from "../../../extensions/subagent/implementer-run
 describe("ImplementerRuntime", () => {
   beforeEach(() => {
     createAgentSessionMock.mockReset();
+    DefaultResourceLoaderMock.mockClear();
     resourceLoaderReloadMock.mockClear();
   });
 
@@ -64,6 +65,81 @@ describe("ImplementerRuntime", () => {
     expect(createAgentSessionMock).toHaveBeenCalledTimes(1);
     expect(session.prompt).toHaveBeenCalledTimes(2);
     expect(session.setActiveToolsByName).toHaveBeenCalledTimes(1);
+  });
+
+  test("preserves discovered append prompts when adding the agent prompt", async () => {
+    const session = {
+      prompt: vi.fn(async () => {}),
+      messages: [],
+      sessionFile: "/tmp/implementer-session.jsonl",
+      setActiveToolsByName: vi.fn(),
+    };
+    createAgentSessionMock.mockResolvedValue({ session });
+
+    const runtime = new ImplementerRuntime();
+    await runtime.run({
+      record: {
+        workstreamId: "ws-1",
+        taskKey: "task-2",
+        status: "active",
+        cwd: process.cwd(),
+        sessionId: "session-1",
+        createdAt: "2026-04-04T00:00:00.000Z",
+        lastUsedAt: "2026-04-04T00:00:00.000Z",
+        turnCount: 0,
+      },
+      agent: {
+        name: "implementer",
+        systemPrompt: "You are implementer",
+        source: "project",
+        filePath: "/tmp/implementer.md",
+      } as any,
+      task: "implement feature",
+    });
+
+    const options = DefaultResourceLoaderMock.mock.calls[0]?.[0] as {
+      appendSystemPromptOverride?: (base: string[]) => string[];
+    };
+    expect(options.appendSystemPromptOverride?.(["project instructions"])).toEqual([
+      "project instructions",
+      "You are implementer",
+    ]);
+  });
+
+  test("does not append blank agent prompts", async () => {
+    const session = {
+      prompt: vi.fn(async () => {}),
+      messages: [],
+      sessionFile: "/tmp/implementer-session.jsonl",
+      setActiveToolsByName: vi.fn(),
+    };
+    createAgentSessionMock.mockResolvedValue({ session });
+
+    const runtime = new ImplementerRuntime();
+    await runtime.run({
+      record: {
+        workstreamId: "ws-1",
+        taskKey: "task-2",
+        status: "active",
+        cwd: process.cwd(),
+        sessionId: "session-1",
+        createdAt: "2026-04-04T00:00:00.000Z",
+        lastUsedAt: "2026-04-04T00:00:00.000Z",
+        turnCount: 0,
+      },
+      agent: {
+        name: "implementer",
+        systemPrompt: "   ",
+        source: "project",
+        filePath: "/tmp/implementer.md",
+      } as any,
+      task: "implement feature",
+    });
+
+    const options = DefaultResourceLoaderMock.mock.calls[0]?.[0] as {
+      appendSystemPromptOverride?: (base: string[]) => string[];
+    };
+    expect(options.appendSystemPromptOverride?.(["project instructions"])).toEqual(["project instructions"]);
   });
 
   test("returns only new non-user messages from the current prompt", async () => {
@@ -211,6 +287,45 @@ describe("ImplementerRuntime", () => {
     });
 
     controller.abort();
+
+    await expect(promise).rejects.toThrow("Implementer was aborted");
+    expect(session.abort).toHaveBeenCalledTimes(1);
+  });
+
+  test("throws if the signal is aborted as the prompt resolves", async () => {
+    const controller = new AbortController();
+    const session = {
+      prompt: vi.fn(async () => {
+        controller.abort();
+      }),
+      messages: [],
+      sessionFile: "/tmp/implementer-session.jsonl",
+      setActiveToolsByName: vi.fn(),
+      abort: vi.fn(async () => {}),
+    };
+    createAgentSessionMock.mockResolvedValue({ session });
+
+    const runtime = new ImplementerRuntime();
+    const promise = runtime.run({
+      record: {
+        workstreamId: "ws-1",
+        taskKey: "task-2",
+        status: "active",
+        cwd: process.cwd(),
+        sessionId: "session-1",
+        createdAt: "2026-04-04T00:00:00.000Z",
+        lastUsedAt: "2026-04-04T00:00:00.000Z",
+        turnCount: 0,
+      },
+      agent: {
+        name: "implementer",
+        systemPrompt: "You are implementer",
+        source: "project",
+        filePath: "/tmp/implementer.md",
+      } as any,
+      task: "implement feature",
+      signal: controller.signal,
+    });
 
     await expect(promise).rejects.toThrow("Implementer was aborted");
     expect(session.abort).toHaveBeenCalledTimes(1);

@@ -93,7 +93,7 @@ export class ImplementerRuntime {
       cwd: record.cwd,
       agentDir,
       settingsManager,
-      appendSystemPrompt: [agent.systemPrompt],
+      appendSystemPromptOverride: (base) => (agent.systemPrompt.trim() ? [...base, agent.systemPrompt] : base),
     });
     await resourceLoader.reload();
 
@@ -146,6 +146,9 @@ export class ImplementerRuntime {
       throw error;
     } finally {
       input.signal?.removeEventListener("abort", abortSession);
+    }
+    if (input.signal?.aborted) {
+      throw new Error("Implementer was aborted");
     }
 
     const deltaMessages = session.messages.slice(startIndex).filter((message) => message.role !== "user");
