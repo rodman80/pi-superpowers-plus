@@ -44,9 +44,9 @@
     "@earendil-works/pi-ai": "0.77.0",
     "@earendil-works/pi-coding-agent": "0.77.0",
     "@earendil-works/pi-tui": "0.77.0",
-    "vitest": "^4.1.6"
+    "vitest": "^4.1.7"
   },
   "overrides": {
-    "postcss": "8.5.14"
+    "postcss": "8.5.15"
   }
 }
