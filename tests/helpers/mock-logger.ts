@@ -8,7 +8,7 @@
  * import { createMockLogger } from "../../helpers/mock-logger.js";
  *
  * vi.mock("../../../extensions/logging.js", async (importOriginal) => {
- *   const actual = await importOriginal<typeof import("../../../extensions/logging.js")>();
+ *   const actual = await importOriginal();
  *   return { ...actual, log: createMockLogger() };
  * });
  * ```
